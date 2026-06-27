@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>2028 Tier List — Who's Got a Shot?</title>
+<script>
+  // Apply theme before paint to prevent flash
+  (function(){
+    var t = localStorage.getItem('2028_theme');
+    if(t === 'dark') document.documentElement.setAttribute('data-theme','dark');
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f5f7; --panel:#ffffff; --panel2:#eeeef0; --line:#d4d4d8;
+    --text:#1a1a1d; --muted:#6b6b73; --accent:#1a1a1d;
+    --dem:#3f6fd6; --gop:#cf4a52; --ind:#8a72c9;
+    --s:#e05a63; --a:#d98b3e; --b:#cbb24a; --c:#5fa872; --d:#4f8fb0; --f:#7d72b8;
+    --green:#4caf7d; --red:#cf4a52; --yellow:#cbb24a;
+    --radius:10px;
+    --btn-primary-bg:#1a1a1d; --btn-primary-text:#f5f5f7;
+  }
+  html[data-theme="dark"]{
+    --bg:#0b0b0c; --panel:#121214; --panel2:#1a1a1d; --line:#27272b;
+    --text:#e6e6e8; --muted:#8a8a90; --accent:#e6e6e8;
+    --btn-primary-bg:#e6e6e8; --btn-primary-text:#0b0b0c;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px; line-height:1.4; padding-bottom:80px;
+  }
+  header{
+    position:sticky; top:0; z-index:30;
+    background:var(--bg); border-bottom:1px solid var(--line);
+    padding:12px 14px;
+  }
+  .h-title{font-size:19px; font-weight:700; letter-spacing:-.2px; display:flex; align-items:baseline; gap:8px;}
+  .h-title .yr{font-weight:800; color:var(--text);}
+  .h-sub{color:var(--muted); font-size:12.5px; margin-top:3px;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 12px;}
+  .namerow{display:flex; gap:8px; align-items:center; margin-top:11px;}
+  .namerow input{
+    flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:9px 12px; font-size:15px; outline:none;
+  }
+  .namerow input:focus{border-color:#3a3a40;}
+
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 6px;}
+  button{
+    font-family:inherit; cursor:pointer; border-radius:8px;
+    padding:9px 13px; font-size:13.5px; font-weight:600; color:var(--text);
+    background:var(--panel2); border:1px solid var(--line);
+  }
+  button:active{opacity:.7;}
+  button.primary{background:var(--btn-primary-bg); border-color:var(--btn-primary-bg); color:var(--btn-primary-text);}
+  button.ghost{background:transparent;}
+  button.danger{background:transparent; border-color:var(--line); color:#c97b80;}
+
+  .filters{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
+  .filters button{padding:6px 12px; font-size:12.5px; border-radius:7px;}
+  .filters button.active{background:var(--panel2); border-color:#3a3a40; color:var(--text);}
+
+  /* Tiers */
+  .tier{
+    display:flex; align-items:stretch; margin-bottom:6px; border-radius:var(--radius);
+    overflow:hidden; border:1px solid var(--line); background:var(--panel);
+  }
+  .tier-label{
+    width:52px; flex:0 0 52px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-weight:800; font-size:22px; color:#0b0b0c; padding:6px 2px; text-align:center;
+  }
+  .tier-label small{font-size:8px; font-weight:700; line-height:1.1; margin-top:3px; opacity:.8;}
+  .tier-S .tier-label{background:var(--s);} .tier-A .tier-label{background:var(--a);}
+  .tier-B .tier-label{background:var(--b);} .tier-C .tier-label{background:var(--c);}
+  .tier-D .tier-label{background:var(--d);} .tier-F .tier-label{background:var(--f);}
+  .drop{
+    flex:1; min-height:60px; display:flex; flex-wrap:wrap; gap:6px; padding:7px;
+    align-content:flex-start;
+  }
+  .drop.pool{
+    background:var(--panel); border:1px dashed var(--line); border-radius:var(--radius);
+    min-height:90px;
+  }
+  .pool-wrap{margin-top:6px;}
+  .pool-head{display:flex; justify-content:space-between; align-items:center; margin:18px 0 6px;}
+  .pool-head h3{margin:0; font-size:13px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px;}
+
+  /* Tiles — flat, party color is a left accent bar (cheap to paint) */
+  .tile{
+    position:relative; min-width:82px; max-width:140px; flex:0 0 auto;
+    background:var(--panel2); border-radius:8px; padding:7px 9px 7px 11px; cursor:grab;
+    border:1px solid var(--line); border-left:3px solid var(--line);
+    user-select:none; touch-action:manipulation;
+  }
+  .tile:active{cursor:grabbing;}
+  .tile.party-D{border-left-color:var(--dem);}
+  .tile.party-R{border-left-color:var(--gop);}
+  .tile.party-I{border-left-color:var(--ind);}
+  .tile .tname{font-weight:600; font-size:12.5px; line-height:1.15; color:var(--text);}
+  .tile .trole{font-size:10px; color:var(--muted); margin-top:2px;}
+  .tile .badges{position:absolute; top:-7px; right:-6px; display:flex; gap:2px;}
+  .tile .badge{font-size:10px; background:var(--bg); border:1px solid var(--line); border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center;}
+  .sortable-ghost{opacity:.3;}
+  .sortable-chosen{border-color:#4a4a52;}
+  .sortable-drag{opacity:1;}
+
+  /* comparison states — flat outline rings, no blur */
+  .glow-green{outline:2px solid var(--green); outline-offset:-1px;}
+  .glow-red{outline:2px solid var(--red); outline-offset:-1px;}
+  .glow-yellow{outline:1px dashed var(--yellow); outline-offset:-1px;}
+
+  /* Modal */
+  .theme-toggle{background:transparent; border:1px solid var(--line); width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0; font-size:18px; cursor:pointer; flex-shrink:0;}
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:100; display:none; align-items:center; justify-content:center; padding:16px;}
+  html[data-theme="dark"] .overlay{background:rgba(0,0,0,.6);}
+  .overlay.open{display:flex;}
+  .modal{background:var(--panel); border:1px solid var(--line); border-radius:12px; width:100%; max-width:440px; padding:18px; max-height:90vh; overflow:auto;}
+  .modal h2{margin:0 0 14px; font-size:17px; font-weight:700;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600;}
+  .field input,.field select,.field textarea{
+    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:9px 11px; font-size:15px; outline:none; font-family:inherit;
+  }
+  .field input:focus,.field select:focus{border-color:#3a3a40;}
+  .modal-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:8px;}
+
+  textarea.code{width:100%; height:88px; resize:vertical; font-family:ui-monospace,Menlo,monospace; font-size:12px; background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:10px;}
+
+  /* context menu */
+  .ctxmenu{position:fixed; z-index:200; background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; display:none;}
+  .ctxmenu.open{display:block;}
+  .ctxmenu button{display:block; width:100%; text-align:left; border:none; border-radius:0; background:transparent; padding:11px 18px;}
+  .ctxmenu button:hover{background:var(--panel2);}
+
+  /* sections */
+  .section{margin-top:24px;}
+  .section h2{font-size:15px; margin:0 0 10px; font-weight:700; display:flex; align-items:center; gap:8px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;}
+  .hint{color:var(--muted); font-size:12.5px;}
+
+  /* comparison */
+  #compareOut{margin-top:14px;}
+  .cmp-cols{display:flex; gap:10px;}
+  .cmp-col{flex:1; min-width:0;}
+  .cmp-col h3{font-size:13px; margin:0 0 8px; text-align:center; color:var(--text); background:var(--panel2); padding:7px; border-radius:8px; border:1px solid var(--line);}
+  .cmp-tier{display:flex; gap:6px; margin-bottom:6px; align-items:stretch;}
+  .cmp-tlabel{width:24px; flex:0 0 24px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; color:#0b0b0c; border-radius:6px;}
+  .cmp-tlabel.l-S{background:var(--s);} .cmp-tlabel.l-A{background:var(--a);} .cmp-tlabel.l-B{background:var(--b);}
+  .cmp-tlabel.l-C{background:var(--c);} .cmp-tlabel.l-D{background:var(--d);} .cmp-tlabel.l-F{background:var(--f);}
+  .cmp-drop{flex:1; display:flex; flex-wrap:wrap; gap:4px; min-height:28px; padding:3px; background:var(--panel); border:1px solid var(--line); border-radius:6px; align-content:flex-start;}
+  .cmp-tile{font-size:10px; padding:4px 6px 4px 7px; border-radius:5px; border-left:3px solid var(--line); background:var(--panel2); color:var(--text); line-height:1.1; position:relative;}
+  .cmp-tile.party-D{border-left-color:var(--dem);}
+  .cmp-tile.party-R{border-left-color:var(--gop);}
+  .cmp-tile.party-I{border-left-color:var(--ind);}
+
+  .stats{margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .stat{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px;}
+  .stat .big{font-size:24px; font-weight:800;}
+  .stat .lbl{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
+  .stat.full{grid-column:1/-1;}
+  .stat ul{margin:6px 0 0; padding-left:16px; font-size:12.5px;}
+  .stat li{margin-bottom:3px;}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); margin:10px 0;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:10px; height:10px; border-radius:3px; display:inline-block;}
+
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--btn-primary-bg); color:var(--btn-primary-text); padding:10px 18px; border-radius:8px; font-weight:600; font-size:13px; z-index:300; opacity:0; pointer-events:none; transition:opacity .2s;}
+  .toast.show{opacity:1;}
+
+  .cta-wrap{text-align:center; margin:32px 0 16px;}
+  .cta-wrap button{font-size:16px; padding:14px 28px;}
+  .share-result{margin-top:10px;}
+  .share-result label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600;}
+  .share-result .copy-row{display:flex; gap:6px;}
+  .share-result .copy-row input{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:9px 11px; font-size:14px; font-family:ui-monospace,Menlo,monospace; outline:none;}
+  .share-result .grid-btns{display:flex; gap:6px; margin-top:8px;}
+
+  @media(max-width:480px){
+    .tier-label{width:44px; flex-basis:44px; font-size:19px;}
+    .tile{min-width:76px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div class="h-title"><span class="yr">2028</span> Tier List · Who's Got a Shot?</div>
+        <div class="h-sub">Rank the contenders. Share your list. Compare with a friend.</div>
+      </div>
+      <button class="theme-toggle" id="themeBtn" title="Toggle dark mode">🌙</button>
+    </div>
+    <div class="namerow" id="nameRow">
+      <input id="userName" type="text" placeholder="Enter your name…" maxlength="32" autocomplete="off">
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <button class="primary" id="genBtn">📋 Share Your Tier List</button>
+    <button id="compareBtn">🤝 Compare with a Friend</button>
+    <button class="danger" id="resetBtn">↺ Reset</button>
+  </div>
+
+  <!-- Tiers -->
+  <div id="tiers"></div>
+
+  <!-- Pool -->
+  <div class="pool-wrap">
+    <div class="pool-head">
+      <h3>Unranked Pool</h3>
+      <button id="addBtn">➕ Add Your Own</button>
+    </div>
+    <div class="filters" id="filters">
+      <button data-f="all" class="active">All</button>
+      <button data-f="D">Dems</button>
+      <button data-f="R">GOP</button>
+      <button data-f="rogue">⚡ Rogues</button>
+      <button data-f="custom">✏️ Custom</button>
+    </div>
+    <div class="drop pool" id="pool" data-tier=""></div>
+  </div>
+
+  <!-- Share section -->
+  <div class="section" id="shareSection" style="display:none;">
+    <div class="card">
+      <h2>📋 Your Shareable Link</h2>
+      <div class="share-result">
+        <label>Link</label>
+        <div class="copy-row">
+          <input id="shareUrl" type="text" readonly>
+          <button class="primary" id="copyLink">Copy Link</button>
+        </div>
+      </div>
+      <div class="share-result" style="margin-top:12px;">
+        <label>Share Image</label>
+        <div id="shareImageWrap" style="margin-top:6px; line-height:0;"></div>
+        <div class="grid-btns">
+          <button class="primary" id="copyImage">Copy Image</button>
+          <button id="downloadImage">Save PNG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy share code section (for compare) -->
+  <div class="section" id="legacyShareSection" style="display:none;">
+    <div class="card">
+      <h2>📋 Your Share Code</h2>
+      <p class="hint">Send this to a friend for side-by-side comparison.</p>
+      <textarea class="code" id="shareCode" readonly></textarea>
+      <div class="modal-actions" style="justify-content:flex-start;">
+        <button class="primary" id="copyCode">Copy Code</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Read-only CTA -->
+  <div class="cta-wrap" id="ctaWrap" style="display:none;">
+    <button class="primary" id="ctaBtn">Make Your Own Tier List</button>
+  </div>
+
+  <!-- Compare section -->
+  <div class="section" id="compareSection" style="display:none;">
+    <div class="card">
+      <h2>🤝 Compare with a Friend</h2>
+      <p class="hint">Paste your friend's code below to see a side-by-side breakdown.</p>
+      <textarea class="code" id="friendCode" placeholder="TIER-…"></textarea>
+      <div class="modal-actions" style="justify-content:flex-start;">
+        <button class="primary" id="doCompare">Compare</button>
+        <button id="exportImg" style="display:none;">🖼️ Export as Image</button>
+      </div>
+      <div id="compareOut"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add/Edit modal -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <h2 id="modalTitle">Add Your Own Candidate</h2>
+    <div class="field">
+      <label>Name *</label>
+      <input id="mName" type="text" maxlength="40" placeholder="e.g. Your weird uncle">
+    </div>
+    <div class="field">
+      <label>Party</label>
+      <select id="mParty">
+        <option value="D">D — Democrat</option>
+        <option value="R">R — Republican</option>
+        <option value="I">I — Independent</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Role / description</label>
+      <input id="mRole" type="text" maxlength="40" placeholder="e.g. podcaster, MA Sen, dreamer">
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" id="mCancel">Cancel</button>
+      <button class="primary" id="mSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- context menu for custom tiles -->
+<div class="ctxmenu" id="ctxmenu">
+  <button id="ctxEdit">✏️ Edit</button>
+  <button id="ctxDelete">🗑️ Delete</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ DATA ============================ */
+const CANDIDATES = [
+  // Establishment Dems
+  {name:"Gavin Newsom", party:"D", role:"CA Gov"},
+  {name:"Kamala Harris", party:"D", role:"former VP"},
+  {name:"Pete Buttigieg", party:"D", role:"former Trans Sec"},
+  {name:"AOC", party:"D", role:"NY Rep"},
+  {name:"Tim Walz", party:"D", role:"MN Gov"},
+  {name:"Bernie Sanders", party:"D", role:"VT Sen"},
+  {name:"Elizabeth Warren", party:"D", role:"MA Sen"},
+  {name:"Cory Booker", party:"D", role:"NJ Sen"},
+  {name:"JB Pritzker", party:"D", role:"IL Gov"},
+  {name:"Gretchen Whitmer", party:"D", role:"MI Gov"},
+  {name:"Mark Kelly", party:"D", role:"AZ Sen"},
+  {name:"Amy Klobuchar", party:"D", role:"MN Sen"},
+  {name:"Andy Beshear", party:"D", role:"KY Gov"},
+  {name:"Wes Moore", party:"D", role:"MD Gov"},
+  {name:"Josh Shapiro", party:"D", role:"PA Gov"},
+  {name:"John Fetterman", party:"D", role:"PA Sen"},
+  {name:"Ro Khanna", party:"D", role:"CA Rep"},
+  {name:"Jon Ossoff", party:"D", role:"GA Sen"},
+  {name:"Rahm Emanuel", party:"D", role:"former amb."},
+  {name:"Andrew Cuomo", party:"D", role:"former NY Gov"},
+  {name:"Josh Green", party:"D", role:"HI Gov"},
+  // Establishment GOP
+  {name:"JD Vance", party:"R", role:"VP"},
+  {name:"Marco Rubio", party:"R", role:"Sec State"},
+  {name:"Ron DeSantis", party:"R", role:"FL Gov"},
+  {name:"Donald Trump Jr.", party:"R", role:"businessman"},
+  {name:"Ted Cruz", party:"R", role:"TX Sen"},
+  {name:"Vivek Ramaswamy", party:"R", role:"entrepreneur"},
+  {name:"Tulsi Gabbard", party:"R", role:"former DNI"},
+  {name:"RFK Jr.", party:"R", role:"HHS Sec"},
+  {name:"Nikki Haley", party:"R", role:"former SC Gov"},
+  {name:"Sarah Huckabee Sanders", party:"R", role:"AR Gov"},
+  {name:"Brian Kemp", party:"R", role:"GA Gov"},
+  {name:"Tim Scott", party:"R", role:"SC Sen"},
+  {name:"Marjorie Taylor Greene", party:"R", role:"GA Rep"},
+  {name:"Glenn Youngkin", party:"R", role:"former VA Gov"},
+  {name:"Greg Abbott", party:"R", role:"TX Gov"},
+  // Rogues
+  {name:"Graham Platner", party:"D", role:"Maine oyster farmer & Marine vet", rogue:true},
+  {name:"Dan Osborn", party:"I", role:"NE labor organizer", rogue:true},
+  {name:"Mark Cuban", party:"D", role:"entrepreneur (D-lean)", rogue:true},
+  {name:"Jasmine Crockett", party:"D", role:"TX Rep", rogue:true},
+  {name:"Stephen A. Smith", party:"D", role:"ESPN commentator (D-lean)", rogue:true},
+  {name:"Tucker Carlson", party:"R", role:"media", rogue:true},
+  {name:"Joe Rogan", party:"R", role:"podcaster (R-lean)", rogue:true},
+  {name:"Pete Hegseth", party:"R", role:"Defense Sec", rogue:true},
+  {name:"Thomas Massie", party:"R", role:"KY Rep / libertarian", rogue:true},
+];
+const TIERS = [
+  {k:"S", desc:"President material"},
+  {k:"A", desc:"Strong contender"},
+  {k:"B", desc:"Plausible"},
+  {k:"C", desc:"Dark horse"},
+  {k:"D", desc:"No shot"},
+  {k:"F", desc:"Please no"},
+];
+const TIER_VAL = {S:6,A:5,B:4,C:3,D:2,F:1};
+
+/* ============================ STATE ============================ */
+const LS = {
+  name:"2028_name", tiers:"2028_tiers", customs:"2028_customs"
+};
+function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
+
+// give built-ins stable ids
+CANDIDATES.forEach(c=> c.id = slug(c.name));
+
+let state = {
+  name: localStorage.getItem(LS.name) || "",
+  tiers: JSON.parse(localStorage.getItem(LS.tiers) || "{}"),   // {id: "S".."F"}
+  customs: JSON.parse(localStorage.getItem(LS.customs) || "[]") // [{id,name,party,role,custom:true}]
+};
+function save(){
+  localStorage.setItem(LS.name, state.name);
+  localStorage.setItem(LS.tiers, JSON.stringify(state.tiers));
+  localStorage.setItem(LS.customs, JSON.stringify(state.customs));
+}
+function allCandidates(){ return CANDIDATES.concat(state.customs); }
+function candById(id, extra){
+  let c = allCandidates().find(x=>x.id===id);
+  if(!c && extra) c = extra.find(x=>x.id===id);
+  return c;
+}
+
+/* ============================ RENDER ============================ */
+const $ = sel => document.querySelector(sel);
+const tiersEl = $("#tiers");
+const poolEl = $("#pool");
+let currentFilter = "all";
+
+function tile(c){
+  const d = document.createElement("div");
+  d.className = "tile party-"+c.party;
+  d.dataset.id = c.id;
+  d.dataset.party = c.party;
+  d.dataset.rogue = c.rogue ? "1":"";
+  d.dataset.custom = c.custom ? "1":"";
+  let badges = "";
+  if(c.rogue) badges += '<span class="badge" title="Rogue">⚡</span>';
+  if(c.custom) badges += '<span class="badge" title="Custom">✏️</span>';
+  d.innerHTML =
+    (badges ? `<div class="badges">${badges}</div>`:"") +
+    `<div class="tname">${esc(c.name)}</div>` +
+    (c.role ? `<div class="trole">${esc(c.role)}</div>`:"");
+  return d;
+}
+function esc(s){ return (s||"").replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+function buildTiers(){
+  tiersEl.innerHTML = "";
+  TIERS.forEach(t=>{
+    const row = document.createElement("div");
+    row.className = "tier tier-"+t.k;
+    row.innerHTML = `<div class="tier-label">${t.k}<small>${t.desc}</small></div>`;
+    const drop = document.createElement("div");
+    drop.className = "drop";
+    drop.dataset.tier = t.k;
+    row.appendChild(drop);
+    tiersEl.appendChild(row);
+  });
+}
+
+function placeCandidates(){
+  // clear all drops + pool
+  document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
+  allCandidates().forEach(c=>{
+    const t = state.tiers[c.id];
+    const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
+    if(target) target.appendChild(tile(c));
+  });
+  applyFilter();
+}
+
+function applyFilter(){
+  [...poolEl.children].forEach(el=>{
+    let show = true;
+    if(currentFilter==="D") show = el.dataset.party==="D";
+    else if(currentFilter==="R") show = el.dataset.party==="R";
+    else if(currentFilter==="rogue") show = el.dataset.rogue==="1";
+    else if(currentFilter==="custom") show = el.dataset.custom==="1";
+    el.style.display = show ? "" : "none";
+  });
+}
+
+/* recompute tier assignments from the DOM after a drag */
+function recompute(){
+  const t = {};
+  tiersEl.querySelectorAll(".drop").forEach(drop=>{
+    const tier = drop.dataset.tier;
+    [...drop.children].forEach(el=> t[el.dataset.id]=tier);
+  });
+  state.tiers = t;
+  save();
+}
+
+/* ============================ SORTABLE ============================ */
+function initSortables(){
+  const opts = {
+    group:"shared", animation:120, easing:"cubic-bezier(.2,.6,.3,1)",
+    delayOnTouchOnly:true, delay:120, touchStartThreshold:6,
+    ghostClass:"sortable-ghost", chosenClass:"sortable-chosen", dragClass:"sortable-drag",
+    onEnd: ()=>{ recompute(); applyFilter(); }
+  };
+  document.querySelectorAll(".drop").forEach(d=>{ d._sortable = new Sortable(d, opts); });
+}
+
+/* ============================ ADD / EDIT CUSTOM ============================ */
+const modal = $("#modal");
+let editingId = null;
+function openModal(c){
+  editingId = c ? c.id : null;
+  $("#modalTitle").textContent = c ? "Edit Candidate" : "Add Your Own Candidate";
+  $("#mName").value = c ? c.name : "";
+  $("#mParty").value = c ? c.party : "D";
+  $("#mRole").value = c ? c.role : "";
+  modal.classList.add("open");
+  setTimeout(()=> $("#mName").focus(), 50);
+}
+function closeModal(){ modal.classList.remove("open"); editingId=null; }
+
+$("#addBtn").onclick = ()=> openModal(null);
+$("#mCancel").onclick = closeModal;
+modal.addEventListener("click", e=>{ if(e.target===modal) closeModal(); });
+
+$("#mSave").onclick = ()=>{
+  const name = $("#mName").value.trim();
+  if(!name){ toast("Name is required"); return; }
+  const party = $("#mParty").value;
+  const role = $("#mRole").value.trim();
+  if(editingId){
+    const c = state.customs.find(x=>x.id===editingId);
+    if(c){ c.name=name; c.party=party; c.role=role; }
+  } else {
+    let id = "custom-"+slug(name);
+    while(allCandidates().some(x=>x.id===id)) id += "-x";
+    state.customs.push({id, name, party, role, custom:true});
+  }
+  save(); placeCandidates(); closeModal();
+  toast(editingId ? "Updated" : "Added");
+};
+
+/* context menu (edit/delete) for custom tiles */
+const ctx = $("#ctxmenu");
+let ctxTarget = null;
+function showCtx(x,y,id){
+  ctxTarget = id;
+  ctx.style.left = Math.min(x, window.innerWidth-150)+"px";
+  ctx.style.top = Math.min(y, window.innerHeight-100)+"px";
+  ctx.classList.add("open");
+}
+function hideCtx(){ ctx.classList.remove("open"); ctxTarget=null; }
+document.addEventListener("click", e=>{ if(!ctx.contains(e.target)) hideCtx(); });
+$("#ctxEdit").onclick = ()=>{ const c=state.customs.find(x=>x.id===ctxTarget); hideCtx(); if(c) openModal(c); };
+$("#ctxDelete").onclick = ()=>{
+  const c=state.customs.find(x=>x.id===ctxTarget); hideCtx();
+  if(c && confirm(`Delete "${c.name}"?`)){
+    state.customs = state.customs.filter(x=>x.id!==c.id);
+    delete state.tiers[c.id];
+    save(); placeCandidates(); toast("Deleted");
+  }
+};
+
+// right-click + long-press on custom tiles
+document.addEventListener("contextmenu", e=>{
+  const t = e.target.closest(".tile");
+  if(t && t.dataset.custom==="1"){ e.preventDefault(); showCtx(e.clientX, e.clientY, t.dataset.id); }
+});
+let lpTimer=null, lpStart=null;
+document.addEventListener("touchstart", e=>{
+  const t = e.target.closest(".tile");
+  if(t && t.dataset.custom==="1"){
+    const tch=e.touches[0]; lpStart={x:tch.clientX,y:tch.clientY};
+    lpTimer = setTimeout(()=> showCtx(tch.clientX, tch.clientY, t.dataset.id), 650);
+  }
+}, {passive:true});
+document.addEventListener("touchmove", e=>{
+  if(lpTimer && lpStart){
+    const tch=e.touches[0];
+    if(Math.hypot(tch.clientX-lpStart.x, tch.clientY-lpStart.y) > 10){ clearTimeout(lpTimer); lpTimer=null; }
+  }
+}, {passive:true});
+document.addEventListener("touchend", ()=>{ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } });
+
+/* ============================ FILTERS ============================ */
+$("#filters").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  currentFilter = b.dataset.f;
+  [...$("#filters").children].forEach(x=> x.classList.toggle("active", x===b));
+  applyFilter();
+});
+
+/* ============================ NAME ============================ */
+const nameInput = $("#userName");
+nameInput.value = state.name;
+nameInput.addEventListener("input", ()=>{ state.name = nameInput.value.trim(); save(); });
+
+/* ============================ SHARE CODE (legacy for compare) ============================ */
+function b64enc(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64dec(str){ return decodeURIComponent(escape(atob(str))); }
+
+function buildCode(){
+  const payload = { n: state.name, t: state.tiers, c: state.customs };
+  return "TIER-" + b64enc(JSON.stringify(payload));
+}
+function parseCode(code){
+  code = code.trim();
+  if(code.startsWith("TIER-")) code = code.slice(5);
+  const obj = JSON.parse(b64dec(code));
+  return { name: obj.n||"Friend", tiers: obj.t||{}, customs: obj.c||[] };
+}
+
+$("#copyCode").onclick = async ()=>{
+  const v = $("#shareCode").value;
+  try{ await navigator.clipboard.writeText(v); toast("Copied!"); }
+  catch{ $("#shareCode").select(); document.execCommand("copy"); toast("Copied!"); }
+};
+
+/* ============================ SHARE IMAGE GENERATOR ============================ */
+let lastShareCanvas = null;
+
+function generateShareImage(name, tiers, shareUrl){
+  // Group canonical candidates (no customs) by tier and party
+  const tierData = TIERS.map(t=>{
+    const inTier = CANDIDATES.filter(c=> tiers[c.id]===t.k);
+    return {
+      key: t.k,
+      blues: inTier.filter(c=> !c.rogue && c.party==='D').length,
+      reds:  inTier.filter(c=> !c.rogue && c.party==='R').length,
+      grays: inTier.filter(c=> c.rogue).length,
+    };
+  });
+
+  const SQ=16, GAP=3, PGAP=8, LABEL_W=36, PAD=16;
+  const TITLE_H=44, ROW_H=SQ+10, LEGEND_H=32, URL_H=22, BOT=8;
+
+  // calc max width needed for squares
+  let maxSqW=0;
+  tierData.forEach(d=>{
+    const counts=[d.blues,d.reds,d.grays].filter(n=>n>0);
+    const total=d.blues+d.reds+d.grays;
+    if(total>0){
+      const w = total*(SQ+GAP)-GAP + (counts.length-1)*PGAP;
+      maxSqW = Math.max(maxSqW, w);
+    }
+  });
+
+  const W = Math.max(320, LABEL_W+maxSqW+PAD*2+8);
+  const H = PAD+TITLE_H+6*ROW_H+LEGEND_H+URL_H+BOT;
+  const S = 2; // retina scale
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W*S; canvas.height = H*S;
+  const cx = canvas.getContext('2d');
+  cx.scale(S,S);
+
+  // background
+  cx.fillStyle='#ffffff';
+  cx.fillRect(0,0,W,H);
+
+  // border
+  cx.strokeStyle='#e0e0e0'; cx.lineWidth=1;
+  cx.strokeRect(0.5,0.5,W-1,H-1);
+
+  // title
+  const font = '-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif';
+  cx.fillStyle='#1a1a1d';
+  cx.font=`bold 16px ${font}`;
+  cx.textBaseline='middle';
+  const t1='2028 Tier List';
+  cx.fillText(t1, PAD, PAD+14);
+  const t1w=cx.measureText(t1).width;
+  cx.font=`16px ${font}`;
+  cx.fillStyle='#6b6b73';
+  cx.fillText(' \u2014 '+(name||'Anon'), PAD+t1w, PAD+14);
+
+  // tier colors
+  const TC={S:'#e05a63',A:'#d98b3e',B:'#cbb24a',C:'#5fa872',D:'#4f8fb0',F:'#7d72b8'};
+  const BLUE='#3f6fd6', RED='#cf4a52', GRAY='#a0a0a8';
+
+  // draw rows
+  tierData.forEach((d,i)=>{
+    const y = PAD+TITLE_H+i*ROW_H;
+    // label
+    cx.fillStyle=TC[d.key];
+    cx.beginPath(); cx.roundRect(PAD,y,24,SQ,4); cx.fill();
+    cx.fillStyle='#fff';
+    cx.font=`bold 12px ${font}`;
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText(d.key, PAD+12, y+SQ/2);
+    cx.textAlign='left';
+
+    // squares
+    let x=PAD+LABEL_W;
+    function drawGrp(n, color){
+      for(let j=0;j<n;j++){
+        cx.fillStyle=color;
+        cx.beginPath(); cx.roundRect(x,y,SQ,SQ,3); cx.fill();
+        x+=SQ+GAP;
+      }
+    }
+    drawGrp(d.blues, BLUE);
+    if(d.blues>0 && (d.reds>0||d.grays>0)) x+=PGAP-GAP;
+    drawGrp(d.reds, RED);
+    if(d.reds>0 && d.grays>0) x+=PGAP-GAP;
+    drawGrp(d.grays, GRAY);
+  });
+
+  // legend
+  const ly = PAD+TITLE_H+6*ROW_H+10;
+  cx.font=`11px ${font}`; cx.textBaseline='middle';
+  let lx=PAD;
+  [[BLUE,'Dem'],[RED,'GOP'],[GRAY,'Rogue']].forEach(([c,l])=>{
+    cx.fillStyle=c;
+    cx.beginPath(); cx.roundRect(lx,ly-4,10,10,2); cx.fill();
+    cx.fillStyle='#6b6b73';
+    cx.fillText(l, lx+14, ly+1);
+    lx+=14+cx.measureText(l).width+16;
+  });
+
+  // url
+  cx.fillStyle='#9e9ea6';
+  cx.font=`10px ${font}`; cx.textBaseline='alphabetic';
+  cx.fillText(shareUrl, PAD, ly+LEGEND_H-4);
+
+  return canvas;
+}
+
+/* ============================ SHARE FLOW (API) ============================ */
+$("#genBtn").onclick = async ()=>{
+  const btn = $("#genBtn");
+  btn.disabled = true;
+  btn.textContent = "Sharing\u2026";
+  try {
+    const resp = await fetch("/api/submit", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ name: state.name, tiers: state.tiers, customs: state.customs })
+    });
+    const data = await resp.json();
+    if(!resp.ok){ toast(data.error || "Error"); return; }
+    $("#shareUrl").value = data.url;
+
+    // generate image
+    lastShareCanvas = generateShareImage(state.name||'Anon', state.tiers, data.url);
+    const wrap = $("#shareImageWrap");
+    wrap.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = lastShareCanvas.toDataURL('image/png');
+    img.style.cssText = 'max-width:100%; border-radius:8px; border:1px solid var(--line);';
+    wrap.appendChild(img);
+
+    $("#shareSection").style.display = "block";
+    $("#shareSection").scrollIntoView({behavior:"smooth", block:"center"});
+  } catch(e){
+    toast("Network error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "\ud83d\udccb Share Your Tier List";
+  }
+};
+
+$("#copyLink").onclick = async ()=>{
+  const v = $("#shareUrl").value;
+  try{ await navigator.clipboard.writeText(v); toast("Link copied!"); }
+  catch{ $("#shareUrl").select(); document.execCommand("copy"); toast("Link copied!"); }
+};
+$("#copyImage").onclick = async ()=>{
+  if(!lastShareCanvas){ toast("No image"); return; }
+  try {
+    const blob = await new Promise(r=> lastShareCanvas.toBlob(r,'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+    toast("Image copied!");
+  } catch(e){ toast("Copy failed — try Save PNG"); }
+};
+$("#downloadImage").onclick = ()=>{
+  if(!lastShareCanvas){ toast("No image"); return; }
+  const a = document.createElement('a');
+  a.download = '2028-tierlist.png';
+  a.href = lastShareCanvas.toDataURL('image/png');
+  a.click();
+  toast("Image saved");
+};
+
+/* ============================ COMPARE ============================ */
+$("#compareBtn").onclick = ()=>{
+  // Show legacy share code for the compare flow
+  $("#legacyShareSection").style.display="block";
+  $("#shareCode").value = buildCode();
+  $("#compareSection").style.display="block";
+  $("#compareSection").scrollIntoView({behavior:"smooth", block:"start"});
+};
+
+$("#doCompare").onclick = ()=>{
+  let friend;
+  try{ friend = parseCode($("#friendCode").value); }
+  catch(e){ toast("Invalid code"); return; }
+  renderComparison(
+    { name: state.name||"You", tiers: state.tiers, customs: state.customs },
+    friend
+  );
+  $("#exportImg").style.display="inline-block";
+};
+
+function comparisonIndex(me, friend){
+  // candidate map of every candidate referenced by either side
+  const map = {};
+  allCandidates().forEach(c=> map[c.id]=c);
+  friend.customs.forEach(c=>{ if(!map[c.id]) map[c.id]={...c, custom:true}; });
+  // also any built-in id present in friend tiers already covered
+  return map;
+}
+
+function glowFor(id, mine, theirs){
+  const a = mine[id], b = theirs[id];
+  if(a && b){
+    if(a===b) return "glow-green";
+    if(Math.abs(TIER_VAL[a]-TIER_VAL[b])>=2) return "glow-red";
+    return ""; // 1 tier apart: neutral
+  }
+  if(a || b) return "glow-yellow"; // only one ranked
+  return "";
+}
+
+function renderColumn(title, tiers, otherTiers, map){
+  let html = `<div class="cmp-col"><h3>${esc(title)}</h3>`;
+  TIERS.forEach(t=>{
+    const ids = Object.keys(tiers).filter(id=> tiers[id]===t.k);
+    html += `<div class="cmp-tier"><div class="cmp-tlabel l-${t.k}">${t.k}</div><div class="cmp-drop">`;
+    ids.forEach(id=>{
+      const c = map[id]; if(!c) return;
+      const glow = glowFor(id, tiers, otherTiers);
+      html += `<div class="cmp-tile party-${c.party} ${glow}">${esc(c.name)}</div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderComparison(me, friend){
+  const map = comparisonIndex(me, friend);
+  // side by side columns
+  let html = `<div class="legend">
+      <span><i class="dot" style="background:var(--green)"></i>Agree</span>
+      <span><i class="dot" style="background:var(--red)"></i>Disagree (2+ tiers)</span>
+      <span><i class="dot" style="background:var(--yellow)"></i>Only one ranked</span>
+    </div>`;
+  html += `<div id="cmpCanvas">`;
+  html += `<div class="cmp-cols">
+      ${renderColumn(me.name||"You", me.tiers, friend.tiers, map)}
+      ${renderColumn(friend.name||"Friend", friend.tiers, me.tiers, map)}
+    </div>`;
+  html += renderStats(me, friend, map);
+  html += `</div>`;
+  $("#compareOut").innerHTML = html;
+}
+
+function renderStats(me, friend, map){
+  const ids = Object.keys(map);
+  const both = ids.filter(id=> me.tiers[id] && friend.tiers[id]);
+  const same = both.filter(id=> me.tiers[id]===friend.tiers[id]);
+  const agreePct = both.length ? Math.round(100*same.length/both.length) : 0;
+
+  // biggest disagreements
+  const diffs = both
+    .map(id=>({ id, name: map[id].name, a: me.tiers[id], b: friend.tiers[id], d: Math.abs(TIER_VAL[me.tiers[id]]-TIER_VAL[friend.tiers[id]]) }))
+    .filter(x=>x.d>0).sort((x,y)=>y.d-x.d).slice(0,5);
+
+  // avg tier per party
+  function avgByParty(tiers, party){
+    const vals = Object.keys(tiers).filter(id=> map[id] && map[id].party===party).map(id=> TIER_VAL[tiers[id]]);
+    if(!vals.length) return "—";
+    return (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);
+  }
+  const parties=[["D","Dem"],["R","GOP"],["I","Ind"]];
+
+  // hot take = # of F picks
+  const myF = Object.values(me.tiers).filter(t=>t==="F").length;
+  const frF = Object.values(friend.tiers).filter(t=>t==="F").length;
+
+  const myCustoms = me.customs.map(c=>c.name);
+  const frCustoms = friend.customs.map(c=>c.name);
+
+  let html = `<div class="stats">`;
+  html += `<div class="stat"><div class="lbl">Agreement</div><div class="big">${agreePct}%</div><div class="hint">${same.length}/${both.length} matched tiers</div></div>`;
+  html += `<div class="stat"><div class="lbl">🌶️ Hot Take Score (F picks)</div><div class="big">${myF} <span style="font-size:14px;color:var(--muted)">vs</span> ${frF}</div><div class="hint">${esc(me.name)} vs ${esc(friend.name)}</div></div>`;
+
+  html += `<div class="stat full"><div class="lbl">🔥 Biggest Disagreements</div><ul>`;
+  if(diffs.length){
+    diffs.forEach(d=> html += `<li><b>${esc(d.name)}</b> — You: ${d.a}, ${esc(friend.name)}: ${d.b} <span class="hint">(${d.d} tiers apart)</span></li>`);
+  } else html += `<li class="hint">No disagreements — spooky.</li>`;
+  html += `</ul></div>`;
+
+  html += `<div class="stat full"><div class="lbl">📊 Avg Tier by Party (6=S … 1=F)</div><ul>`;
+  parties.forEach(([p,lbl])=>{
+    html += `<li><b>${lbl}:</b> ${esc(me.name)} ${avgByParty(me.tiers,p)} · ${esc(friend.name)} ${avgByParty(friend.tiers,p)}</li>`;
+  });
+  html += `</ul></div>`;
+
+  html += `<div class="stat full"><div class="lbl">⚡ Wildest Picks (custom adds)</div><ul>`;
+  html += `<li><b>${esc(me.name)}:</b> ${myCustoms.length ? esc(myCustoms.join(", ")) : "<span class='hint'>none</span>"}</li>`;
+  html += `<li><b>${esc(friend.name)}:</b> ${frCustoms.length ? esc(frCustoms.join(", ")) : "<span class='hint'>none</span>"}</li>`;
+  html += `</ul></div>`;
+
+  html += `</div>`;
+  return html;
+}
+
+$("#exportImg").onclick = ()=>{
+  const node = $("#cmpCanvas");
+  if(!node) return;
+  toast("Rendering image…");
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  html2canvas(node, {backgroundColor: isDark ? "#0b0b0c" : "#f5f5f7", scale:2}).then(canvas=>{
+    const a = document.createElement("a");
+    a.download = "2028-comparison.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+    toast("Image saved");
+  }).catch(()=> toast("Export failed"));
+};
+
+/* ============================ RESET ============================ */
+$("#resetBtn").onclick = ()=>{
+  if(confirm("Reset your tier list and remove all custom candidates? This can't be undone.")){
+    state.tiers = {}; state.customs = [];
+    save(); placeCandidates();
+    $("#shareSection").style.display="none";
+    $("#legacyShareSection").style.display="none";
+    $("#compareSection").style.display="none";
+    $("#compareOut").innerHTML="";
+    toast("Reset complete");
+  }
+};
+
+/* ============================ TOAST ============================ */
+let toastTimer=null;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=> t.classList.remove("show"), 1800);
+}
+
+/* ============================ THEME TOGGLE ============================ */
+function updateThemeIcon(){
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  $("#themeBtn").textContent = isDark ? "☀️" : "🌙";
+}
+$("#themeBtn").onclick = ()=>{
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  if(isDark){
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem("2028_theme", "light");
+  } else {
+    document.documentElement.setAttribute("data-theme", "dark");
+    localStorage.setItem("2028_theme", "dark");
+  }
+  updateThemeIcon();
+};
+updateThemeIcon();
+
+/* ============================ SHARED VIEW ============================ */
+function enterReadOnlyMode(data){
+  // Update header
+  $(".h-title").innerHTML = `<span class="yr">2028</span> ${esc(data.name)}'s Tier List`;
+  $(".h-sub").textContent = "Shared tier list";
+
+  // Hide editor UI
+  $("#nameRow").style.display = "none";
+  $(".toolbar").style.display = "none";
+  $(".pool-wrap").style.display = "none";
+  $("#shareSection").style.display = "none";
+  $("#legacyShareSection").style.display = "none";
+  $("#compareSection").style.display = "none";
+
+  // Merge custom candidates
+  if(data.customs && data.customs.length){
+    data.customs.forEach(c=>{
+      c.custom = true;
+      if(!allCandidates().some(x=>x.id===c.id)){
+        state.customs.push(c);
+      }
+    });
+  }
+
+  // Apply tier assignments
+  state.tiers = data.tiers || {};
+  state.name = data.name;
+
+  // Rebuild with read-only data
+  buildTiers();
+  placeCandidates();
+
+  // Remove unranked candidates from view (they'd be in the hidden pool)
+  // Show only tier rows that have candidates
+  document.querySelectorAll(".tier").forEach(row => {
+    const drop = row.querySelector(".drop");
+    if(drop && drop.children.length === 0) row.style.display = "none";
+  });
+
+  // Disable sortable
+  document.querySelectorAll(".drop").forEach(d=>{
+    if(d._sortable) d._sortable.option("disabled", true);
+  });
+
+  // Show CTA
+  $("#ctaWrap").style.display = "block";
+  $("#ctaBtn").onclick = ()=>{ window.location.href = "/"; };
+}
+
+async function checkSharedView(){
+  const path = window.location.pathname.replace(/^\//, "");
+  if(/^[a-z0-9]{6}$/.test(path)){
+    try {
+      const resp = await fetch("/api/submission/" + path);
+      if(resp.ok){
+        const data = await resp.json();
+        enterReadOnlyMode(data);
+        return true;
+      }
+    } catch(e){}
+  }
+  return false;
+}
+
+/* ============================ INIT ============================ */
+buildTiers();
+placeCandidates();
+initSortables();
+
+checkSharedView();
+</script>
+</body>
+</html>
