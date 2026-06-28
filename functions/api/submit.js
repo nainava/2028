@@ -10,7 +10,6 @@ export async function onRequestPost(context) {
 
   const name = (data.name || "").trim().slice(0, 32) || "Anon";
   const tiers = data.tiers || {};
-  const customs = data.customs || [];
 
   if (typeof tiers !== "object" || Array.isArray(tiers)) {
     return Response.json({ error: "tiers must be an object" }, { status: 400 });
@@ -36,7 +35,6 @@ export async function onRequestPost(context) {
       id: sid,
       name,
       tiers,
-      customs,
       created_at: new Date().toISOString(),
     })
   );

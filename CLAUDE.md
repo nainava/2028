@@ -30,16 +30,15 @@ wrangler pages dev        # serves on http://localhost:8788
 ### `2028.html` — the whole app
 Organized into banner-commented JS sections (`DATA`, `STATE`, `RENDER`, `SORTABLE`, `FILTERS`, `NAME`, `SHARE IMAGE GENERATOR`, `SHARE FLOW (API)`, `COMPARE`, `RANDOMIZE`, `ASK AI`, `THEME TOGGLE`, `SHARED VIEW`, `INIT`). External deps are SortableJS (drag/drop) and html2canvas (image export), both via CDN.
 
-- **State / persistence**: localStorage keys `2028_name`, `2028_tiers`, `2028_customs`, `2028_theme`. `tiers` is `{candidateId: "S"|"A"|"B"|"C"|"D"|"F"}`; unranked candidates are simply absent.
+- **State / persistence**: localStorage keys `2028_name`, `2028_tiers`, `2028_theme`. `tiers` is `{candidateId: "S"|"A"|"B"|"C"|"D"|"F"}`; unranked candidates are simply absent.
 - **Candidate IDs**: derived client-side from the display name via `slug(name)` (lowercase, non-alphanumerics → `-`). The `CANDIDATES` array holds `{name, party, role, rogue?}`; IDs are assigned at load.
-- **Custom candidates**: user-added entries (`2028_customs`), client-only, marked with a `★` badge. Carried inside share payloads.
 
 ### Two independent share mechanisms
 1. **Server links** (`SHARE FLOW (API)` + `SHARED VIEW`): `POST /api/submit` stores the list in KV and returns a 6-char id + URL. Opening a URL whose path is a 6-char id is rewritten to `index.html` via `public/_redirects`, and the `SHARED VIEW` code reads `window.location.pathname` and `GET /api/submission/<id>` to render that list read-only.
-2. **Offline base64 codes** (`COMPARE`): a `"TIER-<base64-json>"` string encoding name/tiers/customs, pasted into the Compare box. Works with no backend.
+2. **Offline base64 codes** (`COMPARE`): a `"TIER-<base64-json>"` string encoding name/tiers, pasted into the Compare box. Works with no backend.
 
 ### Cloudflare Pages Functions — the backend
-- **`functions/api/submit.js`** — `onRequestPost`: validates the JSON body, generates a 6-char alphanumeric ID, stores `{id, name, tiers, customs, created_at}` in KV, and returns `{id, url}`.
+- **`functions/api/submit.js`** — `onRequestPost`: validates the JSON body, generates a 6-char alphanumeric ID, stores `{id, name, tiers, created_at}` in KV, and returns `{id, url}`.
 - **`functions/api/submission/[id].js`** — `onRequestGet`: looks up the submission by ID from KV and returns it as JSON (or 404).
 - **KV namespace**: `SUBMISSIONS` (binding configured in `wrangler.jsonc`).
 - **SPA routing**: `public/_redirects` rewrites all non-file paths to `index.html` so shared-view URLs (6-char IDs) load the app.
