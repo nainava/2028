@@ -110,33 +110,21 @@
   .tile.party-I{border-left-color:var(--ind);}
   .tile .tname{font-weight:600; font-size:12.5px; line-height:1.15; color:var(--text);}
   .tile .trole{font-size:10px; color:var(--muted); margin-top:2px;}
-  .tile .badges{position:absolute; top:-7px; right:-6px; display:flex; gap:2px;}
-  .tile .badge{font-size:10px; background:var(--bg); border:1px solid var(--line); border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center;}
   .sortable-ghost{opacity:.3;}
   .sortable-chosen{border-color:#4a4a52;}
   .sortable-drag{opacity:1;}
-
-/* Modal */
-  .theme-toggle{background:transparent; border:1px solid var(--line); height:36px; padding:0 12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; flex-shrink:0;}
-  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:100; display:none; align-items:center; justify-content:center; padding:16px;}
-  html[data-theme="dark"] .overlay{background:rgba(0,0,0,.6);}
-  .overlay.open{display:flex;}
-  .modal{background:var(--panel); border:1px solid var(--line); border-radius:12px; width:100%; max-width:440px; padding:18px; max-height:90vh; overflow:auto;}
-  .modal h2{margin:0 0 14px; font-size:17px; font-weight:700;}
-  .field{margin-bottom:12px;}
-  .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600;}
-  .field input,.field select,.field textarea{
-    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
-    border-radius:8px; padding:9px 11px; font-size:15px; outline:none; font-family:inherit;
+  .sortable-selected{outline:2px solid var(--accent); outline-offset:-1px; background:color-mix(in srgb, var(--accent) 8%, var(--panel2));}
+  .multi-drag-mirror{opacity:.35;}
+  .multi-drag-badge{
+    position:absolute; top:-6px; right:-6px; min-width:18px; height:18px;
+    background:var(--accent); color:var(--bg); font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; border-radius:50% !important;
+    pointer-events:none; z-index:10;
   }
-  .field input:focus,.field select:focus{border-color:#3a3a40;}
+
+  .theme-toggle{background:transparent; border:1px solid var(--line); height:36px; padding:0 12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; flex-shrink:0;}
   .modal-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:8px;}
 
-/* context menu */
-  .ctxmenu{position:fixed; z-index:200; background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; display:none;}
-  .ctxmenu.open{display:block;}
-  .ctxmenu button{display:block; width:100%; text-align:left; border:none; border-radius:0; background:transparent; padding:11px 18px;}
-  .ctxmenu button:hover{background:var(--panel2);}
 
   /* sections */
   .section{margin-top:24px;}
@@ -210,13 +198,11 @@
   <div class="pool-wrap">
     <div class="pool-head">
       <h3>Unranked Pool</h3>
-      <button id="addBtn">Add Your Own</button>
     </div>
     <div class="filters" id="filters">
       <button data-f="all" class="active">All</button>
       <button data-f="D">Dems</button>
       <button data-f="R">GOP</button>
-      <button data-f="custom">Custom</button>
     </div>
     <div class="drop pool" id="pool" data-tier=""></div>
   </div>
@@ -248,39 +234,6 @@
     <button class="primary" id="ctaBtn">Make Your Own Tier List</button>
   </div>
 
-</div>
-
-<!-- Add/Edit modal -->
-<div class="overlay" id="modal">
-  <div class="modal">
-    <h2 id="modalTitle">Add Your Own Candidate</h2>
-    <div class="field">
-      <label>Name *</label>
-      <input id="mName" type="text" maxlength="40" placeholder="e.g. Your weird uncle">
-    </div>
-    <div class="field">
-      <label>Party</label>
-      <select id="mParty">
-        <option value="D">D — Democrat</option>
-        <option value="R">R — Republican</option>
-        <option value="I">I — Independent</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Role / description</label>
-      <input id="mRole" type="text" maxlength="40" placeholder="e.g. podcaster, MA Sen, dreamer">
-    </div>
-    <div class="modal-actions">
-      <button class="ghost" id="mCancel">Cancel</button>
-      <button class="primary" id="mSave">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- context menu for custom tiles -->
-<div class="ctxmenu" id="ctxmenu">
-  <button id="ctxEdit">Edit</button>
-  <button id="ctxDelete">Delete</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -348,7 +301,7 @@ const TIERS = [
 
 /* ============================ STATE ============================ */
 const LS = {
-  name:"2028_name", tiers:"2028_tiers", customs:"2028_customs",
+  name:"2028_name", tiers:"2028_tiers",
   myLink:"2028_my_link", mySnapshot:"2028_my_snapshot"
 };
 function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
@@ -359,19 +312,17 @@ CANDIDATES.forEach(c=> c.id = slug(c.name));
 let state = {
   name: localStorage.getItem(LS.name) || "",
   tiers: JSON.parse(localStorage.getItem(LS.tiers) || "{}"),   // {id: "S".."F"}
-  customs: JSON.parse(localStorage.getItem(LS.customs) || "[]") // [{id,name,party,role,custom:true}]
 };
 function save(){
   localStorage.setItem(LS.name, state.name);
   localStorage.setItem(LS.tiers, JSON.stringify(state.tiers));
-  localStorage.setItem(LS.customs, JSON.stringify(state.customs));
   updateSaveIndicator();
 }
 
 function hasUnsavedChanges(){
   const snap = localStorage.getItem(LS.mySnapshot);
   if(!snap) return false;
-  return JSON.stringify({n:state.name, t:state.tiers, c:state.customs}) !== snap;
+  return JSON.stringify({n:state.name, t:state.tiers}) !== snap;
 }
 
 function updateSaveIndicator(){
@@ -388,11 +339,8 @@ function updateSaveIndicator(){
     el.className = "save-indicator saved";
   }
 }
-function allCandidates(){ return CANDIDATES.concat(state.customs); }
-function candById(id, extra){
-  let c = allCandidates().find(x=>x.id===id);
-  if(!c && extra) c = extra.find(x=>x.id===id);
-  return c;
+function candById(id){
+  return CANDIDATES.find(x=>x.id===id);
 }
 
 /* ============================ RENDER ============================ */
@@ -407,11 +355,7 @@ function tile(c){
   d.dataset.id = c.id;
   d.dataset.party = c.party;
   d.dataset.rogue = c.rogue ? "1":"";
-  d.dataset.custom = c.custom ? "1":"";
-  let badges = "";
-  if(c.custom) badges += '<span class="badge" title="Custom">★</span>';
   d.innerHTML =
-    (badges ? `<div class="badges">${badges}</div>`:"") +
     `<div class="tname">${esc(c.name)}</div>` +
     (c.role ? `<div class="trole">${esc(c.role)}</div>`:"");
   return d;
@@ -435,7 +379,7 @@ function buildTiers(){
 function placeCandidates(){
   // clear all drops + pool
   document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
-  allCandidates().forEach(c=>{
+  CANDIDATES.forEach(c=>{
     const t = state.tiers[c.id];
     const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
     if(target) target.appendChild(tile(c));
@@ -448,8 +392,10 @@ function applyFilter(){
     let show = true;
     if(currentFilter==="D") show = el.dataset.party==="D";
     else if(currentFilter==="R") show = el.dataset.party==="R";
-    else if(currentFilter==="custom") show = el.dataset.custom==="1";
     el.style.display = show ? "" : "none";
+    if(!show && el.classList.contains("sortable-selected")){
+      Sortable.utils.deselect(el);
+    }
   });
 }
 
@@ -465,92 +411,79 @@ function recompute(){
 }
 
 /* ============================ SORTABLE ============================ */
+Sortable.mount(new Sortable.MultiDrag());
+
+let lastSelected = null; // track last-clicked tile for shift-range
+
 function initSortables(){
   const opts = {
     group:"shared", animation:120, easing:"cubic-bezier(.2,.6,.3,1)",
     delayOnTouchOnly:true, delay:120, touchStartThreshold:6,
     ghostClass:"sortable-ghost", chosenClass:"sortable-chosen", dragClass:"sortable-drag",
-    onEnd: ()=>{ recompute(); applyFilter(); }
+    multiDrag:true, selectedClass:"sortable-selected",
+    fallbackTolerance:3, avoidImplicitDeselect:false,
+
+    onSelect: function(evt){
+      // Shift-click: range-select within the same container
+      if(evt.originalEvent && evt.originalEvent.shiftKey && lastSelected){
+        const container = evt.from;
+        if(lastSelected.parentNode === container){
+          const items = Array.from(container.children).filter(el=> el.style.display !== "none");
+          const iA = items.indexOf(lastSelected);
+          const iB = items.indexOf(evt.item);
+          if(iA !== -1 && iB !== -1){
+            const lo = Math.min(iA, iB), hi = Math.max(iA, iB);
+            for(let i = lo; i <= hi; i++){
+              if(!items[i].classList.contains("sortable-selected")){
+                Sortable.utils.select(items[i]);
+              }
+            }
+          }
+        }
+      }
+      lastSelected = evt.item;
+    },
+
+    onDeselect: function(){},
+
+    onStart: function(evt){
+      const items = evt.items && evt.items.length ? evt.items : [evt.item];
+      if(items.length > 1){
+        // Add count badge to the dragged ghost
+        const ghost = evt.item;
+        const badge = document.createElement("span");
+        badge.className = "multi-drag-badge";
+        badge.textContent = items.length;
+        ghost.appendChild(badge);
+        // Gray out the non-primary selected tiles left in place
+        items.forEach(el=>{
+          if(el !== evt.item) el.classList.add("multi-drag-mirror");
+        });
+      }
+    },
+
+    onEnd: function(evt){
+      // Clean up multi-drag visuals
+      document.querySelectorAll(".multi-drag-mirror").forEach(el=> el.classList.remove("multi-drag-mirror"));
+      document.querySelectorAll(".multi-drag-badge").forEach(el=> el.remove());
+      clearAllSelections();
+      lastSelected = null;
+      recompute();
+      applyFilter();
+    }
   };
   document.querySelectorAll(".drop").forEach(d=>{ d._sortable = new Sortable(d, opts); });
 }
 
-/* ============================ ADD / EDIT CUSTOM ============================ */
-const modal = $("#modal");
-let editingId = null;
-function openModal(c){
-  editingId = c ? c.id : null;
-  $("#modalTitle").textContent = c ? "Edit Candidate" : "Add Your Own Candidate";
-  $("#mName").value = c ? c.name : "";
-  $("#mParty").value = c ? c.party : "D";
-  $("#mRole").value = c ? c.role : "";
-  modal.classList.add("open");
-  setTimeout(()=> $("#mName").focus(), 50);
+function clearAllSelections(){
+  document.querySelectorAll(".sortable-selected").forEach(el=>{
+    Sortable.utils.deselect(el);
+  });
 }
-function closeModal(){ modal.classList.remove("open"); editingId=null; }
 
-$("#addBtn").onclick = ()=> openModal(null);
-$("#mCancel").onclick = closeModal;
-modal.addEventListener("click", e=>{ if(e.target===modal) closeModal(); });
-
-$("#mSave").onclick = ()=>{
-  const name = $("#mName").value.trim();
-  if(!name){ toast("Name is required"); return; }
-  const party = $("#mParty").value;
-  const role = $("#mRole").value.trim();
-  if(editingId){
-    const c = state.customs.find(x=>x.id===editingId);
-    if(c){ c.name=name; c.party=party; c.role=role; }
-  } else {
-    let id = "custom-"+slug(name);
-    while(allCandidates().some(x=>x.id===id)) id += "-x";
-    state.customs.push({id, name, party, role, custom:true});
-  }
-  save(); placeCandidates(); closeModal();
-  toast(editingId ? "Updated" : "Added");
-};
-
-/* context menu (edit/delete) for custom tiles */
-const ctx = $("#ctxmenu");
-let ctxTarget = null;
-function showCtx(x,y,id){
-  ctxTarget = id;
-  ctx.style.left = Math.min(x, window.innerWidth-150)+"px";
-  ctx.style.top = Math.min(y, window.innerHeight-100)+"px";
-  ctx.classList.add("open");
-}
-function hideCtx(){ ctx.classList.remove("open"); ctxTarget=null; }
-document.addEventListener("click", e=>{ if(!ctx.contains(e.target)) hideCtx(); });
-$("#ctxEdit").onclick = ()=>{ const c=state.customs.find(x=>x.id===ctxTarget); hideCtx(); if(c) openModal(c); };
-$("#ctxDelete").onclick = ()=>{
-  const c=state.customs.find(x=>x.id===ctxTarget); hideCtx();
-  if(c && confirm(`Delete "${c.name}"?`)){
-    state.customs = state.customs.filter(x=>x.id!==c.id);
-    delete state.tiers[c.id];
-    save(); placeCandidates(); toast("Deleted");
-  }
-};
-
-// right-click + long-press on custom tiles
-document.addEventListener("contextmenu", e=>{
-  const t = e.target.closest(".tile");
-  if(t && t.dataset.custom==="1"){ e.preventDefault(); showCtx(e.clientX, e.clientY, t.dataset.id); }
+document.addEventListener("keydown", e=>{
+  if(e.key === "Escape") clearAllSelections();
 });
-let lpTimer=null, lpStart=null;
-document.addEventListener("touchstart", e=>{
-  const t = e.target.closest(".tile");
-  if(t && t.dataset.custom==="1"){
-    const tch=e.touches[0]; lpStart={x:tch.clientX,y:tch.clientY};
-    lpTimer = setTimeout(()=> showCtx(tch.clientX, tch.clientY, t.dataset.id), 650);
-  }
-}, {passive:true});
-document.addEventListener("touchmove", e=>{
-  if(lpTimer && lpStart){
-    const tch=e.touches[0];
-    if(Math.hypot(tch.clientX-lpStart.x, tch.clientY-lpStart.y) > 10){ clearTimeout(lpTimer); lpTimer=null; }
-  }
-}, {passive:true});
-document.addEventListener("touchend", ()=>{ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } });
 
 /* ============================ FILTERS ============================ */
 $("#filters").addEventListener("click", e=>{
@@ -569,7 +502,7 @@ nameInput.addEventListener("input", ()=>{ state.name = nameInput.value.trim(); s
 let lastShareCanvas = null;
 
 function generateShareImage(name, tiers, shareUrl){
-  // Group canonical candidates (no customs) by tier and party
+  // Group candidates by tier and party
   const tierData = TIERS.map(t=>{
     const inTier = CANDIDATES.filter(c=> tiers[c.id]===t.k);
     return {
@@ -681,7 +614,7 @@ $("#genBtn").onclick = async ()=>{
     const resp = await fetch("/api/submit", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ name: state.name, tiers: state.tiers, customs: state.customs })
+      body: JSON.stringify({ name: state.name, tiers: state.tiers })
     });
     const data = await resp.json();
     if(!resp.ok){ toast(data.error || "Error"); return; }
@@ -699,7 +632,7 @@ $("#genBtn").onclick = async ()=>{
     // Store link ownership
     localStorage.setItem(LS.myLink, data.id);
     localStorage.setItem(LS.mySnapshot,
-      JSON.stringify({n:state.name, t:state.tiers, c:state.customs}));
+      JSON.stringify({n:state.name, t:state.tiers}));
     updateSaveIndicator();
 
     $("#shareSection").style.display = "block";
@@ -736,8 +669,8 @@ $("#downloadImage").onclick = ()=>{
 
 /* ============================ RESET ============================ */
 $("#resetBtn").onclick = ()=>{
-  if(confirm("Reset your tier list and remove all custom candidates? This can't be undone.")){
-    state.tiers = {}; state.customs = [];
+  if(confirm("Reset your tier list? This can't be undone.")){
+    state.tiers = {};
     localStorage.removeItem(LS.myLink);
     localStorage.removeItem(LS.mySnapshot);
     save(); placeCandidates();
@@ -750,7 +683,7 @@ $("#resetBtn").onclick = ()=>{
 $("#randomBtn").onclick = ()=>{
   if(Object.keys(state.tiers).length && !confirm("Randomly assign every candidate to a tier? This replaces your current list.")) return;
   const t = {};
-  allCandidates().forEach(c=>{
+  CANDIDATES.forEach(c=>{
     t[c.id] = TIERS[Math.floor(Math.random()*TIERS.length)].k;
   });
   state.tiers = t;
@@ -760,7 +693,7 @@ $("#randomBtn").onclick = ()=>{
 
 /* ============================ ASK AI ============================ */
 function buildAIPrompt(){
-  const byId = {}; allCandidates().forEach(c=> byId[c.id]=c);
+  const byId = {}; CANDIDATES.forEach(c=> byId[c.id]=c);
   const lines = [];
   TIERS.forEach(t=>{
     const names = Object.keys(state.tiers)
@@ -826,15 +759,12 @@ function enterReadOnlyMode(data){
   $(".pool-wrap").style.display = "none";
   $("#shareSection").style.display = "none";
 
-  // Build a temporary candidate list for rendering (don't touch state)
-  const viewCustoms = (data.customs || []).map(c=> ({...c, custom:true}));
-  const viewCandidates = CANDIDATES.concat(viewCustoms);
   const viewTiers = data.tiers || {};
 
   // Rebuild tiers and place candidates using view data (not state)
   buildTiers();
   document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
-  viewCandidates.forEach(c=>{
+  CANDIDATES.forEach(c=>{
     const t = viewTiers[c.id];
     const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
     if(target) target.appendChild(tile(c));
