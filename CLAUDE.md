@@ -26,11 +26,11 @@ This repo is worked on collaboratively. Never commit directly to `main`.
 ## Running
 
 ```bash
-wrangler pages dev --kv SUBMISSIONS        # main repo on :8788
+npm run dev                                # main repo on :8788
 bin/wt-dev <worktree-name>                 # worktree on next free port (:8789+)
 ```
 
-- `wrangler pages dev` serves `public/`, routes `/api/*` calls to `functions/`, and emulates KV locally. The `--kv SUBMISSIONS` flag is required — `pages dev` does not read `kv_namespaces` from `wrangler.jsonc`.
+- `npm run dev` runs `wrangler pages dev --kv SUBMISSIONS`. The `--kv SUBMISSIONS` flag is required because `pages dev` does not read `kv_namespaces` from `wrangler.jsonc`. **Never run bare `wrangler pages dev`** — always use `npm run dev` or `bin/wt-dev`.
 - `bin/wt-dev` finds a worktree by name under `.claude/worktrees/`, picks the next free port starting at 8789, and runs `wrangler pages dev` there. This lets you test multiple worktrees simultaneously on different ports.
 - `2028.html` is the source of truth for the front end; it is copied to `public/index.html`. Front-end edits to `public/index.html` (or `2028.html` + copy) just need a browser refresh — no restart.
 

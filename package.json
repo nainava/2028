@@ -1,0 +1,7 @@
+{
+  "name": "2028",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev --kv SUBMISSIONS"
+  }
+}

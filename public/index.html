@@ -16,7 +16,6 @@
   :root{
     --bg:#fbfbf9; --panel:#ffffff; --panel2:#f4f3ef; --line:#e4e3de;
     --text:#1a1a1d; --muted:#6b6b73; --accent:#1a1a1d;
-    --dem:#3f6fd6; --gop:#cf4a52; --ind:#8a72c9;
     --s:#e05a63; --a:#d98b3e; --b:#cbb24a; --c:#5fa872; --d:#4f8fb0; --f:#7d72b8;
     --green:#4caf7d; --red:#cf4a52; --yellow:#cbb24a;
     --radius:10px;
@@ -45,12 +44,6 @@
   .h-title .yr{font-weight:800; color:var(--text);}
   .h-sub{color:var(--muted); font-size:12.5px; margin-top:3px;}
   .wrap{max-width:760px; margin:0 auto; padding:0 12px;}
-  .namerow{display:flex; gap:8px; align-items:center; margin-top:11px;}
-  .namerow input{
-    flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--text);
-    border-radius:8px; padding:9px 12px; font-size:15px; outline:none;
-  }
-  .namerow input:focus{border-color:#3a3a40;}
 
   .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 6px; align-items:center; justify-content:space-between;}
   button{
@@ -102,9 +95,6 @@
     user-select:none; touch-action:manipulation;
   }
   .tile:active{cursor:grabbing;}
-  .tile.party-D{border-left-color:var(--dem);}
-  .tile.party-R{border-left-color:var(--gop);}
-  .tile.party-I{border-left-color:var(--ind);}
   .tile .tname{font-weight:600; font-size:12.5px; line-height:1.15; color:var(--text);}
   .tile .trole{font-size:10px; color:var(--muted); margin-top:2px;}
   .sortable-ghost{opacity:.3;}
@@ -138,11 +128,9 @@
 
   .cta-wrap{text-align:center; margin:32px 0 16px;}
   .cta-wrap button{font-size:16px; padding:14px 28px;}
-  .share-result{margin-top:10px;}
-  .share-result label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600;}
-  .share-result .copy-row{display:flex; gap:6px;}
-  .share-result .copy-row input{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:9px 11px; font-size:14px; font-family:ui-monospace,Menlo,monospace; outline:none;}
-  .share-result .grid-btns{display:flex; gap:6px; margin-top:8px;}
+  .share-card{position:relative;}
+  .share-card pre{margin:0; padding-right:60px; white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:14px; line-height:1.7;}
+  .share-card .copy-btn{position:absolute; top:14px; right:14px; font-size:12px; padding:6px 12px;}
 
   @media(max-width:480px){
     .tier-label{width:44px; flex-basis:44px; font-size:19px;}
@@ -159,9 +147,6 @@
         <div class="h-sub">Rank the contenders. Share your list.</div>
       </div>
       <button class="theme-toggle" id="themeBtn" title="Toggle dark mode">Dark</button>
-    </div>
-    <div class="namerow" id="nameRow">
-      <input id="userName" type="text" placeholder="Enter your name…" maxlength="32" autocomplete="off">
     </div>
   </div>
 </header>
@@ -211,23 +196,9 @@
 
   <!-- Share section -->
   <div class="section" id="shareSection" style="display:none;">
-    <div class="card">
-      <h2>Your Shareable Link</h2>
-      <div class="share-result">
-        <label>Link</label>
-        <div class="copy-row">
-          <input id="shareUrl" type="text" readonly>
-          <button class="primary" id="copyLink">Copy Link</button>
-        </div>
-      </div>
-      <div class="share-result" style="margin-top:12px;">
-        <label>Share Image</label>
-        <div id="shareImageWrap" style="margin-top:6px; line-height:0;"></div>
-        <div class="grid-btns">
-          <button class="primary" id="copyImage">Copy Image</button>
-          <button id="downloadImage">Save PNG</button>
-        </div>
-      </div>
+    <div class="card share-card">
+      <pre id="shareText"></pre>
+      <button class="primary copy-btn" id="copyShare">Copy</button>
     </div>
   </div>
 
@@ -300,6 +271,13 @@ const TIERS = [
   {k:"D", desc:"No shot"},
   {k:"F", desc:"Please no"},
 ];
+/* Single source of truth for party rendering — tiles, share text, legend */
+const PARTIES = [
+  {key:"D", label:"Dem", order:0, color:"#3f6fd6", circle:"\u{1f535}", square:"\u{1f7e6}"},
+  {key:"R", label:"GOP", order:1, color:"#cf4a52", circle:"\u{1f534}", square:"\u{1f7e5}"},
+  {key:"I", label:"Ind", order:2, color:"#8a72c9", circle:"\u{1f7e3}", square:"\u{1f7ea}"},
+];
+const PARTY_MAP = {}; PARTIES.forEach(p=> PARTY_MAP[p.key]=p);
 
 /* ============================ STATE ============================ */
 const LS = {
@@ -352,10 +330,12 @@ const poolEl = $("#pool");
 
 function tile(c){
   const d = document.createElement("div");
-  d.className = "tile party-"+c.party;
+  d.className = "tile";
   d.dataset.id = c.id;
   d.dataset.party = c.party;
   d.dataset.rogue = c.rogue ? "1":"";
+  const p = PARTY_MAP[c.party];
+  if(p) d.style.borderLeftColor = p.color;
   d.innerHTML =
     `<div class="tname">${esc(c.name)}</div>` +
     (c.role ? `<div class="trole">${esc(c.role)}</div>`:"");
@@ -472,120 +452,44 @@ document.addEventListener("keydown", e=>{
   if(e.key === "Escape") clearAllSelections();
 });
 
-/* ============================ NAME ============================ */
-const nameInput = $("#userName");
-nameInput.value = state.name;
-nameInput.addEventListener("input", ()=>{ state.name = nameInput.value.trim(); save(); });
-
-/* ============================ SHARE IMAGE GENERATOR ============================ */
-let lastShareCanvas = null;
-
-function generateShareImage(name, tiers, shareUrl){
-  // Group candidates by tier and party
-  const tierData = TIERS.map(t=>{
-    const inTier = CANDIDATES.filter(c=> tiers[c.id]===t.k);
-    return {
-      key: t.k,
-      blues: inTier.filter(c=> c.party==='D').length,
-      reds:  inTier.filter(c=> c.party==='R').length,
-      grays: inTier.filter(c=> c.party==='I').length,
-    };
+/* ============================ SHARE TEXT GENERATOR ============================ */
+function generateShareText(shareUrl){
+  const tierLines = [];
+  TIERS.forEach(t=>{
+    const drop = tiersEl.querySelector(`.drop[data-tier="${t.k}"]`);
+    if(!drop) return;
+    const tiles = [...drop.children];
+    if(!tiles.length) return;
+    // Read DOM order — matches the left-to-right arrangement the user sees
+    const emojis = tiles.map(el=>{
+      const c = candById(el.dataset.id);
+      if(!c) return '';
+      const p = PARTY_MAP[c.party];
+      if(!p) return '\u26aa';
+      return c.rogue ? p.square : p.circle;
+    }).join('');
+    tierLines.push(`${t.k}: ${emojis}`);
   });
 
-  const SQ=16, GAP=3, LABEL_W=36, PAD=16;
-  const TITLE_H=44, ROW_H=SQ+10, LEGEND_H=32, URL_H=22, BOT=8;
+  let text = `2028 Tier List\n\n`;
+  text += tierLines.join('\n');
+  text += '\n\n';
+  text += 'Circle = elected track \xb7 Square = outsider track\n';
 
-  // calc max width needed for squares
-  let maxSqW=0;
-  tierData.forEach(d=>{
-    const total=d.blues+d.reds+d.grays;
-    if(total>0){
-      const w = total*(SQ+GAP)-GAP;
-      maxSqW = Math.max(maxSqW, w);
-    }
-  });
+  // Legend — only parties present in CANDIDATES, in canonical order
+  const usedKeys = new Set(CANDIDATES.map(c=>c.party));
+  text += PARTIES
+    .filter(p=> usedKeys.has(p.key))
+    .map(p=> `${p.circle} ${p.label}`)
+    .join(' \xb7 ');
 
-  const W = Math.max(320, LABEL_W+maxSqW+PAD*2+8);
-  const H = PAD+TITLE_H+6*ROW_H+LEGEND_H+URL_H+BOT;
-  const S = 2; // retina scale
-
-  const canvas = document.createElement('canvas');
-  canvas.width = W*S; canvas.height = H*S;
-  const cx = canvas.getContext('2d');
-  cx.scale(S,S);
-
-  // background
-  cx.fillStyle='#ffffff';
-  cx.fillRect(0,0,W,H);
-
-  // border
-  cx.strokeStyle='#e0e0e0'; cx.lineWidth=1;
-  cx.strokeRect(0.5,0.5,W-1,H-1);
-
-  // title
-  const font = '-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif';
-  cx.fillStyle='#1a1a1d';
-  cx.font=`bold 16px ${font}`;
-  cx.textBaseline='middle';
-  const t1='2028 Tier List';
-  cx.fillText(t1, PAD, PAD+14);
-  const t1w=cx.measureText(t1).width;
-  cx.font=`16px ${font}`;
-  cx.fillStyle='#6b6b73';
-  cx.fillText(' \u2014 '+(name||'Anon'), PAD+t1w, PAD+14);
-
-  // tier colors
-  const TC={S:'#e05a63',A:'#d98b3e',B:'#cbb24a',C:'#5fa872',D:'#4f8fb0',F:'#7d72b8'};
-  const BLUE='#3f6fd6', RED='#cf4a52', GRAY='#8a72c9';
-
-  // draw rows
-  tierData.forEach((d,i)=>{
-    const y = PAD+TITLE_H+i*ROW_H;
-    // label
-    cx.fillStyle=TC[d.key];
-    cx.beginPath(); cx.roundRect(PAD,y,24,SQ,4); cx.fill();
-    cx.fillStyle='#fff';
-    cx.font=`bold 12px ${font}`;
-    cx.textAlign='center'; cx.textBaseline='middle';
-    cx.fillText(d.key, PAD+12, y+SQ/2);
-    cx.textAlign='left';
-
-    // squares
-    let x=PAD+LABEL_W;
-    function drawGrp(n, color){
-      for(let j=0;j<n;j++){
-        cx.fillStyle=color;
-        cx.beginPath(); cx.roundRect(x,y,SQ,SQ,3); cx.fill();
-        x+=SQ+GAP;
-      }
-    }
-    drawGrp(d.blues, BLUE);
-    drawGrp(d.reds, RED);
-    drawGrp(d.grays, GRAY);
-  });
-
-  // legend
-  const ly = PAD+TITLE_H+6*ROW_H+10;
-  cx.font=`11px ${font}`; cx.textBaseline='middle';
-  let lx=PAD;
-  [[BLUE,'Dem'],[RED,'GOP'],[GRAY,'Ind']].forEach(([c,l])=>{
-    cx.fillStyle=c;
-    cx.beginPath(); cx.roundRect(lx,ly-4,10,10,2); cx.fill();
-    cx.fillStyle='#6b6b73';
-    cx.fillText(l, lx+14, ly+1);
-    lx+=14+cx.measureText(l).width+16;
-  });
-
-  // url
-  cx.fillStyle='#9e9ea6';
-  cx.font=`10px ${font}`; cx.textBaseline='alphabetic';
-  cx.fillText(shareUrl, PAD, ly+LEGEND_H-4);
-
-  return canvas;
+  if(shareUrl) text += `\n\nMake yours: ${shareUrl}`;
+  return text;
 }
 
 /* ============================ SHARE FLOW (API) ============================ */
 $("#genBtn").onclick = async ()=>{
+  if(!Object.keys(state.tiers).length){ toast("Rank some candidates first"); return; }
   const btn = $("#genBtn");
   btn.disabled = true;
   btn.textContent = "Sharing\u2026";
@@ -593,20 +497,13 @@ $("#genBtn").onclick = async ()=>{
     const resp = await fetch("/api/submit", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ name: state.name, tiers: state.tiers })
+      body: JSON.stringify({ name: state.name || 'Anon', tiers: state.tiers })
     });
     const data = await resp.json();
     if(!resp.ok){ toast(data.error || "Error"); return; }
-    $("#shareUrl").value = data.url;
 
-    // generate image
-    lastShareCanvas = generateShareImage(state.name||'Anon', state.tiers, data.url);
-    const wrap = $("#shareImageWrap");
-    wrap.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = lastShareCanvas.toDataURL('image/png');
-    img.style.cssText = 'max-width:100%; border-radius:8px; border:1px solid var(--line);';
-    wrap.appendChild(img);
+    // Generate share text
+    $("#shareText").textContent = generateShareText(data.url);
 
     // Store link ownership
     localStorage.setItem(LS.myLink, data.id);
@@ -620,30 +517,19 @@ $("#genBtn").onclick = async ()=>{
     toast("Network error");
   } finally {
     btn.disabled = false;
-    btn.textContent = "\ud83d\udccb Share Your Tier List";
+    btn.textContent = "Share Your Tier List";
   }
 };
 
-$("#copyLink").onclick = async ()=>{
-  const v = $("#shareUrl").value;
-  try{ await navigator.clipboard.writeText(v); toast("Link copied!"); }
-  catch{ $("#shareUrl").select(); document.execCommand("copy"); toast("Link copied!"); }
-};
-$("#copyImage").onclick = async ()=>{
-  if(!lastShareCanvas){ toast("No image"); return; }
-  try {
-    const blob = await new Promise(r=> lastShareCanvas.toBlob(r,'image/png'));
-    await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
-    toast("Image copied!");
-  } catch(e){ toast("Copy failed — try Save PNG"); }
-};
-$("#downloadImage").onclick = ()=>{
-  if(!lastShareCanvas){ toast("No image"); return; }
-  const a = document.createElement('a');
-  a.download = '2028-tierlist.png';
-  a.href = lastShareCanvas.toDataURL('image/png');
-  a.click();
-  toast("Image saved");
+$("#copyShare").onclick = async ()=>{
+  const text = $("#shareText").textContent;
+  try{ await navigator.clipboard.writeText(text); toast("Copied to clipboard!"); }
+  catch{
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove();
+    toast("Copied!");
+  }
 };
 
 /* ============================ RESET ============================ */
@@ -736,8 +622,7 @@ function enterReadOnlyMode(data){
   $(".h-sub").textContent = "Shared tier list";
 
   // Hide editor UI
-  $("#nameRow").style.display = "none";
-  $(".toolbar").style.display = "none";
+  document.querySelectorAll(".toolbar").forEach(el=> el.style.display = "none");
   $(".pool-wrap").style.display = "none";
   $("#shareSection").style.display = "none";
 
