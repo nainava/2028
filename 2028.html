@@ -357,14 +357,33 @@ function buildTiers(){
   });
 }
 
-function placeCandidates(){
+/* Render candidates into tiers + pool.
+   Ranked candidates are placed in `tiersMap` key order, which preserves the
+   user's left-to-right arrangement: recompute() writes the keys in DOM order
+   and that order survives save()/JSON round-trips. Unranked candidates fall
+   back to the canonical CANDIDATES order in the pool. */
+function placeCandidates(tiersMap){
+  tiersMap = tiersMap || state.tiers;
   // clear all drops + pool
   document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
-  CANDIDATES.forEach(c=>{
-    const t = state.tiers[c.id];
-    const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
-    if(target) target.appendChild(tile(c));
+  const byId = {}; CANDIDATES.forEach(c=> byId[c.id]=c);
+  const placed = new Set();
+  Object.keys(tiersMap).forEach(id=>{
+    const c = byId[id]; if(!c) return;            // ignore stale ids
+    const drop = tiersEl.querySelector(`.drop[data-tier="${tiersMap[id]}"]`);
+    if(drop){ drop.appendChild(tile(c)); placed.add(id); }
   });
+  CANDIDATES.forEach(c=>{ if(!placed.has(c.id)) poolEl.appendChild(tile(c)); });
+}
+
+/* Fisher-Yates shuffle, returns a new array */
+function shuffled(arr){
+  const a = arr.slice();
+  for(let i=a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 /* recompute tier assignments from the DOM after a drag */
@@ -382,6 +401,13 @@ function recompute(){
 // MultiDrag plugin is auto-mounted by the default Sortable.js CDN build.
 
 let lastSelected = null; // track last-clicked tile for shift-range
+let dragOrder = null;    // ids of a multi-drag selection, in original DOM order
+
+// Sort elements ascending by their position in the document
+function inDomOrder(els){
+  return els.slice().sort((a,b)=>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+}
 
 function initSortables(){
   const opts = {
@@ -415,7 +441,8 @@ function initSortables(){
     onDeselect: function(){},
 
     onStart: function(evt){
-      const items = evt.items && evt.items.length ? evt.items : [evt.item];
+      const items = (evt.items && evt.items.length ? evt.items : [evt.item]).slice();
+      dragOrder = items.length > 1 ? inDomOrder(items).map(el=> el.dataset.id) : null;
       if(items.length > 1){
         // Add count badge to the dragged ghost
         const ghost = evt.item;
@@ -434,7 +461,28 @@ function initSortables(){
       // Clean up multi-drag visuals
       document.querySelectorAll(".multi-drag-mirror").forEach(el=> el.classList.remove("multi-drag-mirror"));
       document.querySelectorAll(".multi-drag-badge").forEach(el=> el.remove());
+
+      // The multiDrag plugin reinserts selected tiles in an unreliable order and
+      // anchors on whichever tile was grabbed. Re-assert the original order as a
+      // contiguous block at the grabbed tile's landing spot, so the result is
+      // stable regardless of which tile started the drag.
+      if(dragOrder && dragOrder.length > 1){
+        const to = evt.to;
+        const moved = dragOrder
+          .map(id=> document.querySelector(`[data-id="${id}"]`))
+          .filter(Boolean);
+        if(moved.length){
+          const movedSet = new Set(moved);
+          // First node after the grabbed tile that isn't part of the moved block
+          let ref = evt.item.nextSibling;
+          while(ref && movedSet.has(ref)) ref = ref.nextSibling;
+          moved.forEach(el=> el.remove());
+          moved.forEach(el=> to.insertBefore(el, ref));
+        }
+      }
+
       clearAllSelections();
+      dragOrder = null;
       lastSelected = null;
       recompute();
     }
@@ -497,7 +545,7 @@ $("#genBtn").onclick = async ()=>{
     const resp = await fetch("/api/submit", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ name: state.name || 'Anon', tiers: state.tiers })
+      body: JSON.stringify({ name: state.name || '', tiers: state.tiers })
     });
     const data = await resp.json();
     if(!resp.ok){ toast(data.error || "Error"); return; }
@@ -548,7 +596,9 @@ $("#resetBtn").onclick = ()=>{
 $("#randomBtn").onclick = ()=>{
   if(Object.keys(state.tiers).length && !confirm("Randomly assign every candidate to a tier? This replaces your current list.")) return;
   const t = {};
-  CANDIDATES.forEach(c=>{
+  // Build keys in shuffled order so within-tier rendering order is random too
+  // (placeCandidates renders ranked candidates in tiersMap key order).
+  shuffled(CANDIDATES).forEach(c=>{
     t[c.id] = TIERS[Math.floor(Math.random()*TIERS.length)].k;
   });
   state.tiers = t;
@@ -637,8 +687,11 @@ updateThemeIcon();
 
 /* ============================ SHARED VIEW ============================ */
 function enterReadOnlyMode(data){
-  // Update header
-  $(".h-title").innerHTML = `<span class="yr">2028</span> ${esc(data.name)}'s Tier List`;
+  // Update header — only show a possessive name if a real one was provided.
+  // ("Anon" is the legacy placeholder stored by older shares; treat it as none.)
+  const nm = (data.name || "").trim();
+  const who = (nm && nm.toLowerCase() !== "anon") ? `${esc(nm)}'s ` : "";
+  $(".h-title").innerHTML = `<span class="yr">2028</span> ${who}Tier List`;
   $(".h-sub").textContent = "Shared tier list";
 
   // Hide editor UI
@@ -648,14 +701,10 @@ function enterReadOnlyMode(data){
 
   const viewTiers = data.tiers || {};
 
-  // Rebuild tiers and place candidates using view data (not state)
+  // Rebuild tiers and place candidates using view data (not state),
+  // preserving the sharer's within-tier order from the submitted payload.
   buildTiers();
-  document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
-  CANDIDATES.forEach(c=>{
-    const t = viewTiers[c.id];
-    const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
-    if(target) target.appendChild(tile(c));
-  });
+  placeCandidates(viewTiers);
 
   // Remove unranked candidates from view (they'd be in the hidden pool)
   // Show only tier rows that have candidates

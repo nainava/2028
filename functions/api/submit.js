@@ -8,7 +8,7 @@ export async function onRequestPost(context) {
     return Response.json({ error: "invalid JSON" }, { status: 400 });
   }
 
-  const name = (data.name || "").trim().slice(0, 32) || "Anon";
+  const name = (data.name || "").trim().slice(0, 32);
   const tiers = data.tiers || {};
 
   if (typeof tiers !== "object" || Array.isArray(tiers)) {
