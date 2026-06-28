@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
   :root{
-    --bg:#f5f5f7; --panel:#ffffff; --panel2:#eeeef0; --line:#d4d4d8;
+    --bg:#fbfbf9; --panel:#ffffff; --panel2:#f4f3ef; --line:#e4e3de;
     --text:#1a1a1d; --muted:#6b6b73; --accent:#1a1a1d;
     --dem:#3f6fd6; --gop:#cf4a52; --ind:#8a72c9;
     --s:#e05a63; --a:#d98b3e; --b:#cbb24a; --c:#5fa872; --d:#4f8fb0; --f:#7d72b8;
@@ -29,6 +29,8 @@
     --btn-primary-bg:#e6e6e8; --btn-primary-text:#0b0b0c;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  /* sleek: no rounded corners anywhere */
+  *{border-radius:0 !important;}
   html,body{margin:0; padding:0;}
   body{
     background:var(--bg); color:var(--text);
@@ -61,6 +63,11 @@
   button.primary{background:var(--btn-primary-bg); border-color:var(--btn-primary-bg); color:var(--btn-primary-text);}
   button.ghost{background:transparent;}
   button.danger{background:transparent; border-color:var(--line); color:#c97b80;}
+
+  .ask-ai{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:6px 0 2px;}
+  .ask-label{font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px;}
+  .ai-btn{display:inline-flex; align-items:center; gap:7px;}
+  .ai-btn svg{width:16px; height:16px; display:block;}
 
   .filters{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
   .filters button{padding:6px 12px; font-size:12.5px; border-radius:7px;}
@@ -116,7 +123,7 @@
   .glow-yellow{outline:1px dashed var(--yellow); outline-offset:-1px;}
 
   /* Modal */
-  .theme-toggle{background:transparent; border:1px solid var(--line); width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0; font-size:18px; cursor:pointer; flex-shrink:0;}
+  .theme-toggle{background:transparent; border:1px solid var(--line); height:36px; padding:0 12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; flex-shrink:0;}
   .overlay{position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:100; display:none; align-items:center; justify-content:center; padding:16px;}
   html[data-theme="dark"] .overlay{background:rgba(0,0,0,.6);}
   .overlay.open{display:flex;}
@@ -196,7 +203,7 @@
         <div class="h-title"><span class="yr">2028</span> Tier List · Who's Got a Shot?</div>
         <div class="h-sub">Rank the contenders. Share your list. Compare with a friend.</div>
       </div>
-      <button class="theme-toggle" id="themeBtn" title="Toggle dark mode">🌙</button>
+      <button class="theme-toggle" id="themeBtn" title="Toggle dark mode">Dark</button>
     </div>
     <div class="namerow" id="nameRow">
       <input id="userName" type="text" placeholder="Enter your name…" maxlength="32" autocomplete="off">
@@ -207,9 +214,23 @@
 <div class="wrap">
 
   <div class="toolbar">
-    <button class="primary" id="genBtn">📋 Share Your Tier List</button>
-    <button id="compareBtn">🤝 Compare with a Friend</button>
-    <button class="danger" id="resetBtn">↺ Reset</button>
+    <button class="primary" id="genBtn">Share Your Tier List</button>
+    <button id="compareBtn">Compare with a Friend</button>
+    <button id="randomBtn">Randomize</button>
+    <button class="danger" id="resetBtn">Reset</button>
+  </div>
+
+  <!-- Ask AI -->
+  <div class="ask-ai">
+    <span class="ask-label">Ask AI about your list</span>
+    <button class="ai-btn" id="askClaude" title="Open in Claude with your tier list prefilled">
+      <svg viewBox="0 0 46 32" aria-hidden="true"><path fill="#D97757" d="M32.73 0h-6.945L38.45 32h6.945L32.73 0ZM12.665 0 0 32h7.082l2.59-6.72h13.25l2.59 6.72h7.082L19.929 0h-7.264Zm-.702 19.337 4.334-11.246 4.334 11.246h-8.668Z"/></svg>
+      Claude
+    </button>
+    <button class="ai-btn" id="askGPT" title="Open in ChatGPT with your tier list prefilled">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>
+      ChatGPT
+    </button>
   </div>
 
   <!-- Tiers -->
@@ -219,14 +240,13 @@
   <div class="pool-wrap">
     <div class="pool-head">
       <h3>Unranked Pool</h3>
-      <button id="addBtn">➕ Add Your Own</button>
+      <button id="addBtn">Add Your Own</button>
     </div>
     <div class="filters" id="filters">
       <button data-f="all" class="active">All</button>
       <button data-f="D">Dems</button>
       <button data-f="R">GOP</button>
-      <button data-f="rogue">⚡ Rogues</button>
-      <button data-f="custom">✏️ Custom</button>
+      <button data-f="custom">Custom</button>
     </div>
     <div class="drop pool" id="pool" data-tier=""></div>
   </div>
@@ -234,7 +254,7 @@
   <!-- Share section -->
   <div class="section" id="shareSection" style="display:none;">
     <div class="card">
-      <h2>📋 Your Shareable Link</h2>
+      <h2>Your Shareable Link</h2>
       <div class="share-result">
         <label>Link</label>
         <div class="copy-row">
@@ -256,7 +276,7 @@
   <!-- Legacy share code section (for compare) -->
   <div class="section" id="legacyShareSection" style="display:none;">
     <div class="card">
-      <h2>📋 Your Share Code</h2>
+      <h2>Your Share Code</h2>
       <p class="hint">Send this to a friend for side-by-side comparison.</p>
       <textarea class="code" id="shareCode" readonly></textarea>
       <div class="modal-actions" style="justify-content:flex-start;">
@@ -273,12 +293,12 @@
   <!-- Compare section -->
   <div class="section" id="compareSection" style="display:none;">
     <div class="card">
-      <h2>🤝 Compare with a Friend</h2>
+      <h2>Compare with a Friend</h2>
       <p class="hint">Paste your friend's code below to see a side-by-side breakdown.</p>
       <textarea class="code" id="friendCode" placeholder="TIER-…"></textarea>
       <div class="modal-actions" style="justify-content:flex-start;">
         <button class="primary" id="doCompare">Compare</button>
-        <button id="exportImg" style="display:none;">🖼️ Export as Image</button>
+        <button id="exportImg" style="display:none;">Export as Image</button>
       </div>
       <div id="compareOut"></div>
     </div>
@@ -315,8 +335,8 @@
 
 <!-- context menu for custom tiles -->
 <div class="ctxmenu" id="ctxmenu">
-  <button id="ctxEdit">✏️ Edit</button>
-  <button id="ctxDelete">🗑️ Delete</button>
+  <button id="ctxEdit">Edit</button>
+  <button id="ctxDelete">Delete</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -423,8 +443,7 @@ function tile(c){
   d.dataset.rogue = c.rogue ? "1":"";
   d.dataset.custom = c.custom ? "1":"";
   let badges = "";
-  if(c.rogue) badges += '<span class="badge" title="Rogue">⚡</span>';
-  if(c.custom) badges += '<span class="badge" title="Custom">✏️</span>';
+  if(c.custom) badges += '<span class="badge" title="Custom">★</span>';
   d.innerHTML =
     (badges ? `<div class="badges">${badges}</div>`:"") +
     `<div class="tname">${esc(c.name)}</div>` +
@@ -438,7 +457,7 @@ function buildTiers(){
   TIERS.forEach(t=>{
     const row = document.createElement("div");
     row.className = "tier tier-"+t.k;
-    row.innerHTML = `<div class="tier-label">${t.k}<small>${t.desc}</small></div>`;
+    row.innerHTML = `<div class="tier-label">${t.k}</div>`;
     const drop = document.createElement("div");
     drop.className = "drop";
     drop.dataset.tier = t.k;
@@ -463,7 +482,6 @@ function applyFilter(){
     let show = true;
     if(currentFilter==="D") show = el.dataset.party==="D";
     else if(currentFilter==="R") show = el.dataset.party==="R";
-    else if(currentFilter==="rogue") show = el.dataset.rogue==="1";
     else if(currentFilter==="custom") show = el.dataset.custom==="1";
     el.style.display = show ? "" : "none";
   });
@@ -611,22 +629,21 @@ function generateShareImage(name, tiers, shareUrl){
     const inTier = CANDIDATES.filter(c=> tiers[c.id]===t.k);
     return {
       key: t.k,
-      blues: inTier.filter(c=> !c.rogue && c.party==='D').length,
-      reds:  inTier.filter(c=> !c.rogue && c.party==='R').length,
-      grays: inTier.filter(c=> c.rogue).length,
+      blues: inTier.filter(c=> c.party==='D').length,
+      reds:  inTier.filter(c=> c.party==='R').length,
+      grays: inTier.filter(c=> c.party==='I').length,
     };
   });
 
-  const SQ=16, GAP=3, PGAP=8, LABEL_W=36, PAD=16;
+  const SQ=16, GAP=3, LABEL_W=36, PAD=16;
   const TITLE_H=44, ROW_H=SQ+10, LEGEND_H=32, URL_H=22, BOT=8;
 
   // calc max width needed for squares
   let maxSqW=0;
   tierData.forEach(d=>{
-    const counts=[d.blues,d.reds,d.grays].filter(n=>n>0);
     const total=d.blues+d.reds+d.grays;
     if(total>0){
-      const w = total*(SQ+GAP)-GAP + (counts.length-1)*PGAP;
+      const w = total*(SQ+GAP)-GAP;
       maxSqW = Math.max(maxSqW, w);
     }
   });
@@ -662,7 +679,7 @@ function generateShareImage(name, tiers, shareUrl){
 
   // tier colors
   const TC={S:'#e05a63',A:'#d98b3e',B:'#cbb24a',C:'#5fa872',D:'#4f8fb0',F:'#7d72b8'};
-  const BLUE='#3f6fd6', RED='#cf4a52', GRAY='#a0a0a8';
+  const BLUE='#3f6fd6', RED='#cf4a52', GRAY='#8a72c9';
 
   // draw rows
   tierData.forEach((d,i)=>{
@@ -686,9 +703,7 @@ function generateShareImage(name, tiers, shareUrl){
       }
     }
     drawGrp(d.blues, BLUE);
-    if(d.blues>0 && (d.reds>0||d.grays>0)) x+=PGAP-GAP;
     drawGrp(d.reds, RED);
-    if(d.reds>0 && d.grays>0) x+=PGAP-GAP;
     drawGrp(d.grays, GRAY);
   });
 
@@ -696,7 +711,7 @@ function generateShareImage(name, tiers, shareUrl){
   const ly = PAD+TITLE_H+6*ROW_H+10;
   cx.font=`11px ${font}`; cx.textBaseline='middle';
   let lx=PAD;
-  [[BLUE,'Dem'],[RED,'GOP'],[GRAY,'Rogue']].forEach(([c,l])=>{
+  [[BLUE,'Dem'],[RED,'GOP'],[GRAY,'Ind']].forEach(([c,l])=>{
     cx.fillStyle=c;
     cx.beginPath(); cx.roundRect(lx,ly-4,10,10,2); cx.fill();
     cx.fillStyle='#6b6b73';
@@ -870,21 +885,21 @@ function renderStats(me, friend, map){
 
   let html = `<div class="stats">`;
   html += `<div class="stat"><div class="lbl">Agreement</div><div class="big">${agreePct}%</div><div class="hint">${same.length}/${both.length} matched tiers</div></div>`;
-  html += `<div class="stat"><div class="lbl">🌶️ Hot Take Score (F picks)</div><div class="big">${myF} <span style="font-size:14px;color:var(--muted)">vs</span> ${frF}</div><div class="hint">${esc(me.name)} vs ${esc(friend.name)}</div></div>`;
+  html += `<div class="stat"><div class="lbl">Hot Take Score (F picks)</div><div class="big">${myF} <span style="font-size:14px;color:var(--muted)">vs</span> ${frF}</div><div class="hint">${esc(me.name)} vs ${esc(friend.name)}</div></div>`;
 
-  html += `<div class="stat full"><div class="lbl">🔥 Biggest Disagreements</div><ul>`;
+  html += `<div class="stat full"><div class="lbl">Biggest Disagreements</div><ul>`;
   if(diffs.length){
     diffs.forEach(d=> html += `<li><b>${esc(d.name)}</b> — You: ${d.a}, ${esc(friend.name)}: ${d.b} <span class="hint">(${d.d} tiers apart)</span></li>`);
   } else html += `<li class="hint">No disagreements — spooky.</li>`;
   html += `</ul></div>`;
 
-  html += `<div class="stat full"><div class="lbl">📊 Avg Tier by Party (6=S … 1=F)</div><ul>`;
+  html += `<div class="stat full"><div class="lbl">Avg Tier by Party (6=S … 1=F)</div><ul>`;
   parties.forEach(([p,lbl])=>{
     html += `<li><b>${lbl}:</b> ${esc(me.name)} ${avgByParty(me.tiers,p)} · ${esc(friend.name)} ${avgByParty(friend.tiers,p)}</li>`;
   });
   html += `</ul></div>`;
 
-  html += `<div class="stat full"><div class="lbl">⚡ Wildest Picks (custom adds)</div><ul>`;
+  html += `<div class="stat full"><div class="lbl">Wildest Picks (custom adds)</div><ul>`;
   html += `<li><b>${esc(me.name)}:</b> ${myCustoms.length ? esc(myCustoms.join(", ")) : "<span class='hint'>none</span>"}</li>`;
   html += `<li><b>${esc(friend.name)}:</b> ${frCustoms.length ? esc(frCustoms.join(", ")) : "<span class='hint'>none</span>"}</li>`;
   html += `</ul></div>`;
@@ -920,6 +935,49 @@ $("#resetBtn").onclick = ()=>{
   }
 };
 
+/* ============================ RANDOMIZE ============================ */
+$("#randomBtn").onclick = ()=>{
+  if(Object.keys(state.tiers).length && !confirm("Randomly assign every candidate to a tier? This replaces your current list.")) return;
+  const t = {};
+  allCandidates().forEach(c=>{
+    t[c.id] = TIERS[Math.floor(Math.random()*TIERS.length)].k;
+  });
+  state.tiers = t;
+  save(); placeCandidates();
+  toast("Randomized");
+};
+
+/* ============================ ASK AI ============================ */
+function buildAIPrompt(){
+  const byId = {}; allCandidates().forEach(c=> byId[c.id]=c);
+  const lines = [];
+  TIERS.forEach(t=>{
+    const names = Object.keys(state.tiers)
+      .filter(id=> state.tiers[id]===t.k)
+      .map(id=> byId[id]).filter(Boolean)
+      .map(c=> `${c.name} (${c.party})`);
+    if(names.length) lines.push(`${t.k}: ${names.join(", ")}`);
+  });
+  const who = state.name ? `${state.name}'s` : "my";
+  const intro =
+    `Here is ${who} 2028 US presidential tier list. ` +
+    `S = best shot at being a great president, A = strong contender, B = plausible, ` +
+    `C = dark horse, D = no shot, F = please no. Party is in parentheses (D/R/I).\n\n` +
+    `Tell me what it reveals about my political leanings, who I'm overrating or ` +
+    `underrating, and any glaring omissions:\n\n`;
+  return intro + lines.join("\n");
+}
+function askAI(which){
+  if(!Object.keys(state.tiers).length){ toast("Rank some candidates first"); return; }
+  const enc = encodeURIComponent(buildAIPrompt());
+  const url = which==="claude"
+    ? "https://claude.ai/new?q=" + enc
+    : "https://chatgpt.com/?q=" + enc;
+  window.open(url, "_blank", "noopener");
+}
+$("#askClaude").onclick = ()=> askAI("claude");
+$("#askGPT").onclick    = ()=> askAI("gpt");
+
 /* ============================ TOAST ============================ */
 let toastTimer=null;
 function toast(msg){
@@ -930,7 +988,7 @@ function toast(msg){
 /* ============================ THEME TOGGLE ============================ */
 function updateThemeIcon(){
   const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-  $("#themeBtn").textContent = isDark ? "☀️" : "🌙";
+  $("#themeBtn").textContent = isDark ? "Light" : "Dark";
 }
 $("#themeBtn").onclick = ()=>{
   const isDark = document.documentElement.getAttribute("data-theme") === "dark";
