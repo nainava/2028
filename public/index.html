@@ -113,14 +113,6 @@
   .sortable-ghost{opacity:.3;}
   .sortable-chosen{border-color:#4a4a52;}
   .sortable-drag{opacity:1;}
-  .sortable-selected{outline:2px solid var(--accent); outline-offset:-1px; background:color-mix(in srgb, var(--accent) 8%, var(--panel2));}
-  .multi-drag-mirror{opacity:.35;}
-  .multi-drag-badge{
-    position:absolute; top:-6px; right:-6px; min-width:18px; height:18px;
-    background:var(--accent); color:var(--bg); font-size:11px; font-weight:700;
-    display:flex; align-items:center; justify-content:center; border-radius:50% !important;
-    pointer-events:none; z-index:10;
-  }
 
   .theme-toggle{background:transparent; border:1px solid var(--line); height:36px; padding:0 12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; flex-shrink:0;}
   .modal-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:8px;}
@@ -393,9 +385,6 @@ function applyFilter(){
     if(currentFilter==="D") show = el.dataset.party==="D";
     else if(currentFilter==="R") show = el.dataset.party==="R";
     el.style.display = show ? "" : "none";
-    if(!show && el.classList.contains("sortable-selected")){
-      Sortable.utils.deselect(el);
-    }
   });
 }
 
@@ -411,79 +400,15 @@ function recompute(){
 }
 
 /* ============================ SORTABLE ============================ */
-Sortable.mount(new Sortable.MultiDrag());
-
-let lastSelected = null; // track last-clicked tile for shift-range
-
 function initSortables(){
   const opts = {
     group:"shared", animation:120, easing:"cubic-bezier(.2,.6,.3,1)",
     delayOnTouchOnly:true, delay:120, touchStartThreshold:6,
     ghostClass:"sortable-ghost", chosenClass:"sortable-chosen", dragClass:"sortable-drag",
-    multiDrag:true, selectedClass:"sortable-selected",
-    fallbackTolerance:3, avoidImplicitDeselect:false,
-
-    onSelect: function(evt){
-      // Shift-click: range-select within the same container
-      if(evt.originalEvent && evt.originalEvent.shiftKey && lastSelected){
-        const container = evt.from;
-        if(lastSelected.parentNode === container){
-          const items = Array.from(container.children).filter(el=> el.style.display !== "none");
-          const iA = items.indexOf(lastSelected);
-          const iB = items.indexOf(evt.item);
-          if(iA !== -1 && iB !== -1){
-            const lo = Math.min(iA, iB), hi = Math.max(iA, iB);
-            for(let i = lo; i <= hi; i++){
-              if(!items[i].classList.contains("sortable-selected")){
-                Sortable.utils.select(items[i]);
-              }
-            }
-          }
-        }
-      }
-      lastSelected = evt.item;
-    },
-
-    onDeselect: function(){},
-
-    onStart: function(evt){
-      const items = evt.items && evt.items.length ? evt.items : [evt.item];
-      if(items.length > 1){
-        // Add count badge to the dragged ghost
-        const ghost = evt.item;
-        const badge = document.createElement("span");
-        badge.className = "multi-drag-badge";
-        badge.textContent = items.length;
-        ghost.appendChild(badge);
-        // Gray out the non-primary selected tiles left in place
-        items.forEach(el=>{
-          if(el !== evt.item) el.classList.add("multi-drag-mirror");
-        });
-      }
-    },
-
-    onEnd: function(evt){
-      // Clean up multi-drag visuals
-      document.querySelectorAll(".multi-drag-mirror").forEach(el=> el.classList.remove("multi-drag-mirror"));
-      document.querySelectorAll(".multi-drag-badge").forEach(el=> el.remove());
-      clearAllSelections();
-      lastSelected = null;
-      recompute();
-      applyFilter();
-    }
+    onEnd: ()=>{ recompute(); applyFilter(); }
   };
   document.querySelectorAll(".drop").forEach(d=>{ d._sortable = new Sortable(d, opts); });
 }
-
-function clearAllSelections(){
-  document.querySelectorAll(".sortable-selected").forEach(el=>{
-    Sortable.utils.deselect(el);
-  });
-}
-
-document.addEventListener("keydown", e=>{
-  if(e.key === "Escape") clearAllSelections();
-});
 
 /* ============================ FILTERS ============================ */
 $("#filters").addEventListener("click", e=>{
