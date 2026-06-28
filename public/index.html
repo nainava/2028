@@ -52,7 +52,7 @@
   }
   .namerow input:focus{border-color:#3a3a40;}
 
-  .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 6px;}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 6px; align-items:center; justify-content:space-between;}
   button{
     font-family:inherit; cursor:pointer; border-radius:8px;
     padding:9px 13px; font-size:13.5px; font-weight:600; color:var(--text);
@@ -68,9 +68,6 @@
   .ai-btn{display:inline-flex; align-items:center; gap:7px;}
   .ai-btn svg{width:16px; height:16px; display:block;}
 
-  .filters{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
-  .filters button{padding:6px 12px; font-size:12.5px; border-radius:7px;}
-  .filters button.active{background:var(--panel2); border-color:#3a3a40; color:var(--text);}
 
   /* Tiers */
   .tier{
@@ -113,6 +110,14 @@
   .sortable-ghost{opacity:.3;}
   .sortable-chosen{border-color:#4a4a52;}
   .sortable-drag{opacity:1;}
+  .sortable-selected{outline:2px solid var(--accent); outline-offset:-1px; background:color-mix(in srgb, var(--accent) 8%, var(--panel2));}
+  .multi-drag-mirror{opacity:.35;}
+  .multi-drag-badge{
+    position:absolute; top:-6px; right:-6px; min-width:18px; height:18px;
+    background:var(--accent); color:var(--bg); font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; border-radius:50% !important;
+    pointer-events:none; z-index:10;
+  }
 
   .theme-toggle{background:transparent; border:1px solid var(--line); height:36px; padding:0 12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; flex-shrink:0;}
   .modal-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:8px;}
@@ -163,24 +168,16 @@
 
 <div class="wrap">
 
+  <!-- Tier heading -->
   <div class="toolbar">
-    <button class="primary" id="genBtn">Share Your Tier List</button>
-    <span id="saveIndicator" class="save-indicator" style="display:none;"></span>
-<button id="randomBtn">Randomize</button>
-    <button class="danger" id="resetBtn">Reset</button>
-  </div>
-
-  <!-- Ask AI -->
-  <div class="ask-ai">
-    <span class="ask-label">Ask AI about your list</span>
-    <button class="ai-btn" id="askClaude" title="Open in Claude with your tier list prefilled">
-      <svg viewBox="0 0 46 32" aria-hidden="true"><path fill="#D97757" d="M32.73 0h-6.945L38.45 32h6.945L32.73 0ZM12.665 0 0 32h7.082l2.59-6.72h13.25l2.59 6.72h7.082L19.929 0h-7.264Zm-.702 19.337 4.334-11.246 4.334 11.246h-8.668Z"/></svg>
-      Claude
-    </button>
-    <button class="ai-btn" id="askGPT" title="Open in ChatGPT with your tier list prefilled">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>
-      ChatGPT
-    </button>
+    <div>
+      <h3 style="margin:0; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--muted);">Tier List</h3>
+      <p class="hint" style="margin:2px 0 0;">Ranked top to bottom, left to right.</p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="randomBtn">Randomize</button>
+      <button class="danger" id="resetBtn">Reset</button>
+    </div>
   </div>
 
   <!-- Tiers -->
@@ -191,12 +188,25 @@
     <div class="pool-head">
       <h3>Unranked Pool</h3>
     </div>
-    <div class="filters" id="filters">
-      <button data-f="all" class="active">All</button>
-      <button data-f="D">Dems</button>
-      <button data-f="R">GOP</button>
-    </div>
+    <p class="hint" style="margin:0 0 6px;">Drag to rank. Click multiple to select a group, then drag them together.</p>
     <div class="drop pool" id="pool" data-tier=""></div>
+  </div>
+
+  <!-- Share & AI -->
+  <div class="toolbar">
+    <button class="primary" id="genBtn">Share Your Tier List</button>
+    <span id="saveIndicator" class="save-indicator" style="display:none;"></span>
+    <div class="ask-ai">
+      <span class="ask-label">Ask AI about your list</span>
+      <button class="ai-btn" id="askClaude" title="Open in Claude with your tier list prefilled">
+        <svg viewBox="0 0 46 32" aria-hidden="true"><path fill="#D97757" d="M32.73 0h-6.945L38.45 32h6.945L32.73 0ZM12.665 0 0 32h7.082l2.59-6.72h13.25l2.59 6.72h7.082L19.929 0h-7.264Zm-.702 19.337 4.334-11.246 4.334 11.246h-8.668Z"/></svg>
+        Claude
+      </button>
+      <button class="ai-btn" id="askGPT" title="Open in ChatGPT with your tier list prefilled">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>
+        ChatGPT
+      </button>
+    </div>
   </div>
 
   <!-- Share section -->
@@ -339,7 +349,6 @@ function candById(id){
 const $ = sel => document.querySelector(sel);
 const tiersEl = $("#tiers");
 const poolEl = $("#pool");
-let currentFilter = "all";
 
 function tile(c){
   const d = document.createElement("div");
@@ -376,16 +385,6 @@ function placeCandidates(){
     const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
     if(target) target.appendChild(tile(c));
   });
-  applyFilter();
-}
-
-function applyFilter(){
-  [...poolEl.children].forEach(el=>{
-    let show = true;
-    if(currentFilter==="D") show = el.dataset.party==="D";
-    else if(currentFilter==="R") show = el.dataset.party==="R";
-    el.style.display = show ? "" : "none";
-  });
 }
 
 /* recompute tier assignments from the DOM after a drag */
@@ -400,22 +399,77 @@ function recompute(){
 }
 
 /* ============================ SORTABLE ============================ */
+// MultiDrag plugin is auto-mounted by the default Sortable.js CDN build.
+
+let lastSelected = null; // track last-clicked tile for shift-range
+
 function initSortables(){
   const opts = {
     group:"shared", animation:120, easing:"cubic-bezier(.2,.6,.3,1)",
     delayOnTouchOnly:true, delay:120, touchStartThreshold:6,
     ghostClass:"sortable-ghost", chosenClass:"sortable-chosen", dragClass:"sortable-drag",
-    onEnd: ()=>{ recompute(); applyFilter(); }
+    multiDrag:true, selectedClass:"sortable-selected",
+    fallbackTolerance:3, avoidImplicitDeselect:false,
+
+    onSelect: function(evt){
+      // Shift-click: range-select within the same container
+      if(evt.originalEvent && evt.originalEvent.shiftKey && lastSelected){
+        const container = evt.from;
+        if(lastSelected.parentNode === container){
+          const items = Array.from(container.children).filter(el=> el.style.display !== "none");
+          const iA = items.indexOf(lastSelected);
+          const iB = items.indexOf(evt.item);
+          if(iA !== -1 && iB !== -1){
+            const lo = Math.min(iA, iB), hi = Math.max(iA, iB);
+            for(let i = lo; i <= hi; i++){
+              if(!items[i].classList.contains("sortable-selected")){
+                Sortable.utils.select(items[i]);
+              }
+            }
+          }
+        }
+      }
+      lastSelected = evt.item;
+    },
+
+    onDeselect: function(){},
+
+    onStart: function(evt){
+      const items = evt.items && evt.items.length ? evt.items : [evt.item];
+      if(items.length > 1){
+        // Add count badge to the dragged ghost
+        const ghost = evt.item;
+        const badge = document.createElement("span");
+        badge.className = "multi-drag-badge";
+        badge.textContent = items.length;
+        ghost.appendChild(badge);
+        // Gray out the non-primary selected tiles left in place
+        items.forEach(el=>{
+          if(el !== evt.item) el.classList.add("multi-drag-mirror");
+        });
+      }
+    },
+
+    onEnd: function(evt){
+      // Clean up multi-drag visuals
+      document.querySelectorAll(".multi-drag-mirror").forEach(el=> el.classList.remove("multi-drag-mirror"));
+      document.querySelectorAll(".multi-drag-badge").forEach(el=> el.remove());
+      clearAllSelections();
+      lastSelected = null;
+      recompute();
+    }
   };
   document.querySelectorAll(".drop").forEach(d=>{ d._sortable = new Sortable(d, opts); });
 }
 
-/* ============================ FILTERS ============================ */
-$("#filters").addEventListener("click", e=>{
-  const b = e.target.closest("button"); if(!b) return;
-  currentFilter = b.dataset.f;
-  [...$("#filters").children].forEach(x=> x.classList.toggle("active", x===b));
-  applyFilter();
+function clearAllSelections(){
+  document.querySelectorAll(".sortable-selected").forEach(el=>{
+    Sortable.utils.deselect(el);
+  });
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.key === "Escape") clearAllSelections();
 });
 
 /* ============================ NAME ============================ */
@@ -621,9 +675,10 @@ function buildAIPrompt(){
   const byId = {}; CANDIDATES.forEach(c=> byId[c.id]=c);
   const lines = [];
   TIERS.forEach(t=>{
-    const names = Object.keys(state.tiers)
-      .filter(id=> state.tiers[id]===t.k)
-      .map(id=> byId[id]).filter(Boolean)
+    const drop = tiersEl.querySelector(`.drop[data-tier="${t.k}"]`);
+    if(!drop) return;
+    const names = [...drop.children]
+      .map(el=> byId[el.dataset.id]).filter(Boolean)
       .map(c=> `${c.name} (${c.party})`);
     if(names.length) lines.push(`${t.k}: ${names.join(", ")}`);
   });
@@ -631,7 +686,9 @@ function buildAIPrompt(){
   const intro =
     `Here is ${who} 2028 US presidential tier list. ` +
     `S = best shot at being a great president, A = strong contender, B = plausible, ` +
-    `C = dark horse, D = no shot, F = please no. Party is in parentheses (D/R/I).\n\n` +
+    `C = dark horse, D = no shot, F = please no. Within each tier, candidates are ` +
+    `ranked left to right (first listed = highest within that tier). ` +
+    `Party is in parentheses (D/R/I).\n\n` +
     `Tell me what it reveals about my political leanings, who I'm overrating or ` +
     `underrating, and any glaring omissions:\n\n`;
   return intro + lines.join("\n");

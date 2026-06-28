@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Usage: bin/wt-dev <worktree-name>
+# Runs wrangler pages dev for a worktree on the next free port (starting at 8789).
+# The main repo uses 8788, so worktrees start at 8789.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+WT_DIR="$REPO_ROOT/.claude/worktrees"
+
+if [ $# -lt 1 ]; then
+  echo "Usage: bin/wt-dev <worktree-name>"
+  echo ""
+  echo "Available worktrees:"
+  if [ -d "$WT_DIR" ]; then
+    ls -1 "$WT_DIR" 2>/dev/null || echo "  (none)"
+  else
+    echo "  (none)"
+  fi
+  exit 1
+fi
+
+NAME="$1"
+TARGET="$WT_DIR/$NAME"
+
+if [ ! -d "$TARGET" ]; then
+  echo "Error: worktree '$NAME' not found at $TARGET"
+  echo ""
+  echo "Available worktrees:"
+  ls -1 "$WT_DIR" 2>/dev/null || echo "  (none)"
+  exit 1
+fi
+
+# Find next free port starting at 8789
+port=8789
+while lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; do
+  port=$((port + 1))
+done
+
+echo "Serving worktree '$NAME' on http://localhost:$port"
+echo "Directory: $TARGET"
+echo ""
+
+cd "$TARGET"
+exec wrangler pages dev --port "$port" --kv SUBMISSIONS
