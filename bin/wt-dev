@@ -42,4 +42,4 @@ echo "Directory: $TARGET"
 echo ""
 
 cd "$TARGET"
-exec wrangler pages dev --port "$port"
+exec wrangler pages dev --port "$port" --kv SUBMISSIONS
