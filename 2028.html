@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>2028 Tier List — Who's Got a Shot?</title>
+<title>2028 Tier List — Who's Your Pick?</title>
 <script>
   // Apply theme before paint to prevent flash
   (function(){
@@ -143,7 +143,7 @@
   <div class="wrap">
     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
       <div>
-        <div class="h-title"><span class="yr">2028</span> Tier List · Who's Got a Shot?</div>
+        <div class="h-title"><span class="yr">2028</span> Tier List · Who's Your Pick?</div>
         <div class="h-sub">Rank the contenders. Share your list.</div>
       </div>
       <button class="theme-toggle" id="themeBtn" title="Toggle dark mode">Dark</button>
@@ -571,13 +571,33 @@ function buildAIPrompt(){
   const who = state.name ? `${state.name}'s` : "my";
   const intro =
     `Here is ${who} 2028 US presidential tier list. ` +
-    `S = best shot at being a great president, A = strong contender, B = plausible, ` +
-    `C = dark horse, D = no shot, F = please no. Within each tier, candidates are ` +
+    `S = would be happiest with as president, A = strong contender, B = could live with it, ` +
+    `C = meh, D = rather not, F = please god no. Within each tier, candidates are ` +
     `ranked left to right (first listed = highest within that tier). ` +
-    `Party is in parentheses (D/R/I).\n\n` +
-    `Tell me what it reveals about my political leanings, who I'm overrating or ` +
-    `underrating, and any glaring omissions:\n\n`;
-  return intro + lines.join("\n");
+    `Party is in parentheses (D/R/I).\n\n`;
+  const format =
+    `Give me the result in this format:\n\n` +
+    `Your political archetype:\n` +
+    `A short, funny archetype name.\n\n` +
+    `The vibe:\n` +
+    `2–4 sentences describing the political personality implied by this list.\n\n` +
+    `What gives it away:\n` +
+    `3–5 bullets pointing to specific rankings or patterns.\n\n` +
+    `Most revealing pick:\n` +
+    `Pick one candidate placement that says the most about this person. Explain in 1–2 sentences.\n\n` +
+    `Most unusual pick:\n` +
+    `Pick the placement that feels most surprising, spicy, or idiosyncratic. Explain in 1–2 sentences.\n\n` +
+    `Historical profile:\n` +
+    `What kind of historical political figure or voter tradition does this resemble? Use a broad profile, not necessarily a specific person.\n\n` +
+    `Typical voter profile:\n` +
+    `Give a playful but plausible biographical sketch of the kind of person who might make this list. Keep it witty and non-creepy. Do not infer protected traits like race, religion, sexuality, or health.\n\n` +
+    `What this person would debate at dinner:\n` +
+    `3 short bullets.\n\n` +
+    `What this person probably cannot stand:\n` +
+    `3 short bullets.\n\n` +
+    `Shareable one-liner:\n` +
+    `One sentence under 140 characters that captures the whole tier list.\n\n`;
+  return intro + lines.join("\n") + "\n\n" + format;
 }
 function askAI(which){
   if(!Object.keys(state.tiers).length){ toast("Rank some candidates first"); return; }
