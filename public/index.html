@@ -401,6 +401,13 @@ function recompute(){
 // MultiDrag plugin is auto-mounted by the default Sortable.js CDN build.
 
 let lastSelected = null; // track last-clicked tile for shift-range
+let dragOrder = null;    // ids of a multi-drag selection, in original DOM order
+
+// Sort elements ascending by their position in the document
+function inDomOrder(els){
+  return els.slice().sort((a,b)=>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+}
 
 function initSortables(){
   const opts = {
@@ -434,7 +441,8 @@ function initSortables(){
     onDeselect: function(){},
 
     onStart: function(evt){
-      const items = evt.items && evt.items.length ? evt.items : [evt.item];
+      const items = (evt.items && evt.items.length ? evt.items : [evt.item]).slice();
+      dragOrder = items.length > 1 ? inDomOrder(items).map(el=> el.dataset.id) : null;
       if(items.length > 1){
         // Add count badge to the dragged ghost
         const ghost = evt.item;
@@ -453,7 +461,28 @@ function initSortables(){
       // Clean up multi-drag visuals
       document.querySelectorAll(".multi-drag-mirror").forEach(el=> el.classList.remove("multi-drag-mirror"));
       document.querySelectorAll(".multi-drag-badge").forEach(el=> el.remove());
+
+      // The multiDrag plugin reinserts selected tiles in an unreliable order and
+      // anchors on whichever tile was grabbed. Re-assert the original order as a
+      // contiguous block at the grabbed tile's landing spot, so the result is
+      // stable regardless of which tile started the drag.
+      if(dragOrder && dragOrder.length > 1){
+        const to = evt.to;
+        const moved = dragOrder
+          .map(id=> document.querySelector(`[data-id="${id}"]`))
+          .filter(Boolean);
+        if(moved.length){
+          const movedSet = new Set(moved);
+          // First node after the grabbed tile that isn't part of the moved block
+          let ref = evt.item.nextSibling;
+          while(ref && movedSet.has(ref)) ref = ref.nextSibling;
+          moved.forEach(el=> el.remove());
+          moved.forEach(el=> to.insertBefore(el, ref));
+        }
+      }
+
       clearAllSelections();
+      dragOrder = null;
       lastSelected = null;
       recompute();
     }
