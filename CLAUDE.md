@@ -14,7 +14,7 @@ This repo is worked on collaboratively. Never commit directly to `main`.
 
 - **Every change goes on a new branch, then a pull request.** Branch off `main`, commit, push the branch, and open a PR for review/merge.
 - **Pull with rebase** to keep history linear. Configured locally via `git config pull.rebase true` (run it again if you clone fresh, or set `--global`).
-- **No `gh` CLI is installed**, so PRs can't be created from the terminal. After pushing a branch, open the PR via the compare URL: `https://github.com/nainava/2028/compare/main...<branch>?expand=1` (the `git push` output also prints a "Create a pull request" link).
+- **Create the PR with `gh`**: `gh pr create --base main --head <branch>`. The `gh` CLI is installed at `~/.local/bin/gh` and authenticated as `nainava` (`repo` scope), so the whole branch → PR flow works from the terminal. (If `gh` is ever unavailable, fall back to the compare URL `https://github.com/nainava/2028/compare/main...<branch>?expand=1`.)
 
 ## Running
 
