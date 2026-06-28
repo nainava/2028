@@ -16,13 +16,22 @@ This repo is worked on collaboratively. Never commit directly to `main`.
 - **Pull with rebase** to keep history linear. Configured locally via `git config pull.rebase true` (run it again if you clone fresh, or set `--global`).
 - **Create the PR with `gh`**: `gh pr create --base main --head <branch>`. The `gh` CLI is authenticated with `repo` scope, so the whole branch → PR flow works from the terminal.
 
+## Worktrees
+
+**Always use a worktree for new feature work.** Multiple sessions often run in parallel on different branches. Editing files on the wrong branch causes confusion and lost work.
+
+- In Claude Code, use `EnterWorktree` (or the worktree tool) before making any changes. This creates an isolated copy under `.claude/worktrees/<name>` on its own branch.
+- Never edit files directly in the main working directory when working on a feature — always confirm you're in a worktree first.
+
 ## Running
 
 ```bash
-wrangler pages dev        # serves on http://localhost:8788
+wrangler pages dev              # main repo on :8788
+bin/wt-dev <worktree-name>      # worktree on next free port (:8789+)
 ```
 
 - `wrangler pages dev` serves `public/`, routes `/api/*` calls to `functions/`, and emulates KV locally.
+- `bin/wt-dev` finds a worktree by name under `.claude/worktrees/`, picks the next free port starting at 8789, and runs `wrangler pages dev` there. This lets you test multiple worktrees simultaneously on different ports.
 - `2028.html` is the source of truth for the front end; it is copied to `public/index.html`. Front-end edits to `public/index.html` (or `2028.html` + copy) just need a browser refresh — no restart.
 
 ## Architecture
