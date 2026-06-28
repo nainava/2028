@@ -516,7 +516,7 @@ $("#genBtn").onclick = async ()=>{
     const resp = await fetch("/api/submit", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ name: state.name || 'Anon', tiers: state.tiers })
+      body: JSON.stringify({ name: state.name || '', tiers: state.tiers })
     });
     const data = await resp.json();
     if(!resp.ok){ toast(data.error || "Error"); return; }
@@ -638,8 +638,11 @@ updateThemeIcon();
 
 /* ============================ SHARED VIEW ============================ */
 function enterReadOnlyMode(data){
-  // Update header
-  $(".h-title").innerHTML = `<span class="yr">2028</span> ${esc(data.name)}'s Tier List`;
+  // Update header — only show a possessive name if a real one was provided.
+  // ("Anon" is the legacy placeholder stored by older shares; treat it as none.)
+  const nm = (data.name || "").trim();
+  const who = (nm && nm.toLowerCase() !== "anon") ? `${esc(nm)}'s ` : "";
+  $(".h-title").innerHTML = `<span class="yr">2028</span> ${who}Tier List`;
   $(".h-sub").textContent = "Shared tier list";
 
   // Hide editor UI
