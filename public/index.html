@@ -400,14 +400,9 @@ function recompute(){
 /* ============================ SORTABLE ============================ */
 // MultiDrag plugin is auto-mounted by the default Sortable.js CDN build.
 
-let lastSelected = null; // track last-clicked tile for shift-range
-let dragOrder = null;    // ids of a multi-drag selection, in original DOM order
-
-// Sort elements ascending by their position in the document
-function inDomOrder(els){
-  return els.slice().sort((a,b)=>
-    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
-}
+let lastSelected = null;     // track last-clicked tile for shift-range
+let dragOrder = null;        // ids of the active multi-drag, in click order
+let selectionOrder = [];     // selected ids in the order they were clicked
 
 function initSortables(){
   const opts = {
@@ -418,6 +413,10 @@ function initSortables(){
     fallbackTolerance:3, avoidImplicitDeselect:false,
 
     onSelect: function(evt){
+      // Record selection in click order (skip dupes). Programmatic range
+      // selects below re-enter here, so each item lands in selectionOrder.
+      const id = evt.item.dataset.id;
+      if(id && !selectionOrder.includes(id)) selectionOrder.push(id);
       // Shift-click: range-select within the same container
       if(evt.originalEvent && evt.originalEvent.shiftKey && lastSelected){
         const container = evt.from;
@@ -438,21 +437,32 @@ function initSortables(){
       lastSelected = evt.item;
     },
 
-    onDeselect: function(){},
+    onDeselect: function(evt){
+      const id = evt.item && evt.item.dataset.id;
+      const i = id ? selectionOrder.indexOf(id) : -1;
+      if(i !== -1) selectionOrder.splice(i, 1);
+    },
 
     onStart: function(evt){
-      const items = (evt.items && evt.items.length ? evt.items : [evt.item]).slice();
-      dragOrder = items.length > 1 ? inDomOrder(items).map(el=> el.dataset.id) : null;
-      if(items.length > 1){
+      // Build the drag order from the click order, keeping only ids that are
+      // still selected, and ensuring the grabbed tile is included.
+      const selected = new Set(
+        Array.from(document.querySelectorAll(".sortable-selected")).map(el=> el.dataset.id)
+      );
+      selected.add(evt.item.dataset.id);
+      const order = selectionOrder.filter(id=> selected.has(id));
+      selected.forEach(id=>{ if(!order.includes(id)) order.push(id); }); // safety net
+      dragOrder = order.length > 1 ? order : null;
+      if(dragOrder){
         // Add count badge to the dragged ghost
-        const ghost = evt.item;
         const badge = document.createElement("span");
         badge.className = "multi-drag-badge";
-        badge.textContent = items.length;
-        ghost.appendChild(badge);
+        badge.textContent = order.length;
+        evt.item.appendChild(badge);
         // Gray out the non-primary selected tiles left in place
-        items.forEach(el=>{
-          if(el !== evt.item) el.classList.add("multi-drag-mirror");
+        order.forEach(id=>{
+          const el = document.querySelector(`[data-id="${id}"]`);
+          if(el && el !== evt.item) el.classList.add("multi-drag-mirror");
         });
       }
     },
@@ -463,7 +473,7 @@ function initSortables(){
       document.querySelectorAll(".multi-drag-badge").forEach(el=> el.remove());
 
       // The multiDrag plugin reinserts selected tiles in an unreliable order and
-      // anchors on whichever tile was grabbed. Re-assert the original order as a
+      // anchors on whichever tile was grabbed. Re-assert the click order as a
       // contiguous block at the grabbed tile's landing spot, so the result is
       // stable regardless of which tile started the drag.
       if(dragOrder && dragOrder.length > 1){
@@ -494,6 +504,7 @@ function clearAllSelections(){
   document.querySelectorAll(".sortable-selected").forEach(el=>{
     Sortable.utils.deselect(el);
   });
+  selectionOrder = [];
 }
 
 document.addEventListener("keydown", e=>{
