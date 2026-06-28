@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "2028",
+  "pages_build_output_dir": "./public",
+  "compatibility_date": "2025-06-01",
+  "kv_namespaces": [
+    {
+      "binding": "SUBMISSIONS",
+      "id": "e5d994a50b6040ad859570b28c87792d"
+    }
+  ]
+}
