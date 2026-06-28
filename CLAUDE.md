@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A "2028 US presidential contenders" tier-list ranker. The entire front-end app lives in a single self-contained file, `2028.html` (HTML + CSS + JS, no build step). `server.py` is an optional Flask backend that adds server-stored shareable links; the app also works without it via offline base64 share codes.
+A "2028 US presidential contenders" tier-list ranker. The entire front-end app lives in a single self-contained file, `2028.html` (HTML + CSS + JS, no build step). The backend runs on Cloudflare Pages Functions with KV storage for shareable links; the app also works without it via offline base64 share codes.
 
 There is no build, lint, or test tooling. Edits to `2028.html` are plain file edits.
 
@@ -19,12 +19,11 @@ This repo is worked on collaboratively. Never commit directly to `main`.
 ## Running
 
 ```bash
-pip install flask          # only dependency, not vendored
-python3 server.py          # serves on http://localhost:5050, debug=True
+wrangler pages dev        # serves on http://localhost:8788
 ```
 
-- `server.py` auto-creates the SQLite DB (`2028.db`, gitignored) via `init_db()` on startup.
-- Flask `debug=True` watches `server.py` and reloads it. `2028.html` is served fresh from disk on every request, so **front-end edits just need a browser refresh — no restart**.
+- `wrangler pages dev` serves `public/`, routes `/api/*` calls to `functions/`, and emulates KV locally.
+- `2028.html` is the source of truth for the front end; it is copied to `public/index.html`. Front-end edits to `public/index.html` (or `2028.html` + copy) just need a browser refresh — no restart.
 
 ## Architecture
 
@@ -33,22 +32,19 @@ Organized into banner-commented JS sections (`DATA`, `STATE`, `RENDER`, `SORTABL
 
 - **State / persistence**: localStorage keys `2028_name`, `2028_tiers`, `2028_customs`, `2028_theme`. `tiers` is `{candidateId: "S"|"A"|"B"|"C"|"D"|"F"}`; unranked candidates are simply absent.
 - **Candidate IDs**: derived client-side from the display name via `slug(name)` (lowercase, non-alphanumerics → `-`). The `CANDIDATES` array holds `{name, party, role, rogue?}`; IDs are assigned at load.
-- **Custom candidates**: user-added entries (`2028_customs`), client-only, marked with a `★` badge. Carried inside share payloads but excluded from the server-side Wordle grid.
+- **Custom candidates**: user-added entries (`2028_customs`), client-only, marked with a `★` badge. Carried inside share payloads.
 
 ### Two independent share mechanisms
-1. **Server links** (`SHARE FLOW (API)` + `SHARED VIEW`): `POST /api/submit` stores the list and returns a 6-char id + URL. Opening a URL whose path is a 6-char id makes `catch_all` serve `2028.html`, and the `SHARED VIEW` code reads `window.location.pathname` and `GET /api/submission/<id>` to render that list read-only.
+1. **Server links** (`SHARE FLOW (API)` + `SHARED VIEW`): `POST /api/submit` stores the list in KV and returns a 6-char id + URL. Opening a URL whose path is a 6-char id is rewritten to `index.html` via `public/_redirects`, and the `SHARED VIEW` code reads `window.location.pathname` and `GET /api/submission/<id>` to render that list read-only.
 2. **Offline base64 codes** (`COMPARE`): a `"TIER-<base64-json>"` string encoding name/tiers/customs, pasted into the Compare box. Works with no backend.
 
-### `server.py` — Flask + SQLite
-Routes: `/` (serve app), `/tierzoo.png` (logo), `POST /api/submit`, `GET /api/submission/<sid>`, `catch_all` (serves app for 6-char ids, else 404). Single `submissions` table (`id, name, tiers, customs, created_at`). `build_wordle_grid()` produces a shareable emoji grid returned from `/api/submit`.
-
-## Critical cross-file invariant
-
-`server.py`'s `CANDIDATES` list **duplicates the candidate ids and parties** from the JS in `2028.html` and must stay in sync. Adding, removing, or renaming a candidate requires editing **both** files — the server uses these ids to build the Wordle grid, and a rename changes the slug-derived id.
-
-Known divergence to be aware of: the front-end removed the "rogue" category (no ⚡ badges/filter; rogues render by party), but `server.py` still groups by `rogue` (with an `I`/⚡ prefix) in `build_wordle_grid()` and `PARTY_PREFIX`. The Wordle grid therefore still reflects the old rogue grouping.
+### Cloudflare Pages Functions — the backend
+- **`functions/api/submit.js`** — `onRequestPost`: validates the JSON body, generates a 6-char alphanumeric ID, stores `{id, name, tiers, customs, created_at}` in KV, and returns `{id, url}`.
+- **`functions/api/submission/[id].js`** — `onRequestGet`: looks up the submission by ID from KV and returns it as JSON (or 404).
+- **KV namespace**: `SUBMISSIONS` (binding configured in `wrangler.jsonc`).
+- **SPA routing**: `public/_redirects` rewrites all non-file paths to `index.html` so shared-view URLs (6-char IDs) load the app.
 
 ## Other notes
 
 - The blue/red square summary image (referred to as the "heat map" in discussion) is `generateShareImage()` — a `<canvas>` drawing, so CSS doesn't affect it.
-- `archive/index.html` is the **original static, no-backend** variant (base64 sharing only) kept for reference — not the live app, and the only version deployable to plain GitHub Pages (the root app needs a Python host). See `archive/README.md`.
+- `archive/index.html` is the **original static, no-backend** variant (base64 sharing only) kept for reference — not the live app. See `archive/README.md`.

@@ -178,6 +178,10 @@
   .legend span{display:inline-flex; align-items:center; gap:5px;}
   .dot{width:10px; height:10px; border-radius:3px; display:inline-block;}
 
+  .save-indicator{font-size:12px; font-weight:600; padding:4px 10px; vertical-align:middle;}
+  .save-indicator.saved{color:var(--green);}
+  .save-indicator.unsaved{color:var(--muted);}
+
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--btn-primary-bg); color:var(--btn-primary-text); padding:10px 18px; border-radius:8px; font-weight:600; font-size:13px; z-index:300; opacity:0; pointer-events:none; transition:opacity .2s;}
   .toast.show{opacity:1;}
 
@@ -215,6 +219,7 @@
 
   <div class="toolbar">
     <button class="primary" id="genBtn">Share Your Tier List</button>
+    <span id="saveIndicator" class="save-indicator" style="display:none;"></span>
     <button id="compareBtn">Compare with a Friend</button>
     <button id="randomBtn">Randomize</button>
     <button class="danger" id="resetBtn">Reset</button>
@@ -405,7 +410,8 @@ const TIER_VAL = {S:6,A:5,B:4,C:3,D:2,F:1};
 
 /* ============================ STATE ============================ */
 const LS = {
-  name:"2028_name", tiers:"2028_tiers", customs:"2028_customs"
+  name:"2028_name", tiers:"2028_tiers", customs:"2028_customs",
+  myLink:"2028_my_link", mySnapshot:"2028_my_snapshot"
 };
 function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
 
@@ -421,6 +427,28 @@ function save(){
   localStorage.setItem(LS.name, state.name);
   localStorage.setItem(LS.tiers, JSON.stringify(state.tiers));
   localStorage.setItem(LS.customs, JSON.stringify(state.customs));
+  updateSaveIndicator();
+}
+
+function hasUnsavedChanges(){
+  const snap = localStorage.getItem(LS.mySnapshot);
+  if(!snap) return false;
+  return JSON.stringify({n:state.name, t:state.tiers, c:state.customs}) !== snap;
+}
+
+function updateSaveIndicator(){
+  const el = $("#saveIndicator");
+  if(!el) return;
+  const myLink = localStorage.getItem(LS.myLink);
+  if(!myLink){ el.style.display = "none"; return; }
+  el.style.display = "";
+  if(hasUnsavedChanges()){
+    el.textContent = "Unsaved changes";
+    el.className = "save-indicator unsaved";
+  } else {
+    el.textContent = "Saved";
+    el.className = "save-indicator saved";
+  }
 }
 function allCandidates(){ return CANDIDATES.concat(state.customs); }
 function candById(id, extra){
@@ -751,6 +779,12 @@ $("#genBtn").onclick = async ()=>{
     img.style.cssText = 'max-width:100%; border-radius:8px; border:1px solid var(--line);';
     wrap.appendChild(img);
 
+    // Store link ownership
+    localStorage.setItem(LS.myLink, data.id);
+    localStorage.setItem(LS.mySnapshot,
+      JSON.stringify({n:state.name, t:state.tiers, c:state.customs}));
+    updateSaveIndicator();
+
     $("#shareSection").style.display = "block";
     $("#shareSection").scrollIntoView({behavior:"smooth", block:"center"});
   } catch(e){
@@ -926,6 +960,8 @@ $("#exportImg").onclick = ()=>{
 $("#resetBtn").onclick = ()=>{
   if(confirm("Reset your tier list and remove all custom candidates? This can't be undone.")){
     state.tiers = {}; state.customs = [];
+    localStorage.removeItem(LS.myLink);
+    localStorage.removeItem(LS.mySnapshot);
     save(); placeCandidates();
     $("#shareSection").style.display="none";
     $("#legacyShareSection").style.display="none";
@@ -1017,23 +1053,19 @@ function enterReadOnlyMode(data){
   $("#legacyShareSection").style.display = "none";
   $("#compareSection").style.display = "none";
 
-  // Merge custom candidates
-  if(data.customs && data.customs.length){
-    data.customs.forEach(c=>{
-      c.custom = true;
-      if(!allCandidates().some(x=>x.id===c.id)){
-        state.customs.push(c);
-      }
-    });
-  }
+  // Build a temporary candidate list for rendering (don't touch state)
+  const viewCustoms = (data.customs || []).map(c=> ({...c, custom:true}));
+  const viewCandidates = CANDIDATES.concat(viewCustoms);
+  const viewTiers = data.tiers || {};
 
-  // Apply tier assignments
-  state.tiers = data.tiers || {};
-  state.name = data.name;
-
-  // Rebuild with read-only data
+  // Rebuild tiers and place candidates using view data (not state)
   buildTiers();
-  placeCandidates();
+  document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
+  viewCandidates.forEach(c=>{
+    const t = viewTiers[c.id];
+    const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
+    if(target) target.appendChild(tile(c));
+  });
 
   // Remove unranked candidates from view (they'd be in the hidden pool)
   // Show only tier rows that have candidates
@@ -1047,8 +1079,10 @@ function enterReadOnlyMode(data){
     if(d._sortable) d._sortable.option("disabled", true);
   });
 
-  // Show CTA
+  // Show CTA with context-aware text
+  const myLink = localStorage.getItem(LS.myLink);
   $("#ctaWrap").style.display = "block";
+  $("#ctaBtn").textContent = myLink ? "Back to My List" : "Make Your Own Tier List";
   $("#ctaBtn").onclick = ()=>{ window.location.href = "/"; };
 }
 
@@ -1071,6 +1105,7 @@ async function checkSharedView(){
 buildTiers();
 placeCandidates();
 initSortables();
+updateSaveIndicator();
 
 checkSharedView();
 </script>
