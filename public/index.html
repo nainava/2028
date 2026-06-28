@@ -357,14 +357,33 @@ function buildTiers(){
   });
 }
 
-function placeCandidates(){
+/* Render candidates into tiers + pool.
+   Ranked candidates are placed in `tiersMap` key order, which preserves the
+   user's left-to-right arrangement: recompute() writes the keys in DOM order
+   and that order survives save()/JSON round-trips. Unranked candidates fall
+   back to the canonical CANDIDATES order in the pool. */
+function placeCandidates(tiersMap){
+  tiersMap = tiersMap || state.tiers;
   // clear all drops + pool
   document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
-  CANDIDATES.forEach(c=>{
-    const t = state.tiers[c.id];
-    const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
-    if(target) target.appendChild(tile(c));
+  const byId = {}; CANDIDATES.forEach(c=> byId[c.id]=c);
+  const placed = new Set();
+  Object.keys(tiersMap).forEach(id=>{
+    const c = byId[id]; if(!c) return;            // ignore stale ids
+    const drop = tiersEl.querySelector(`.drop[data-tier="${tiersMap[id]}"]`);
+    if(drop){ drop.appendChild(tile(c)); placed.add(id); }
   });
+  CANDIDATES.forEach(c=>{ if(!placed.has(c.id)) poolEl.appendChild(tile(c)); });
+}
+
+/* Fisher-Yates shuffle, returns a new array */
+function shuffled(arr){
+  const a = arr.slice();
+  for(let i=a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 /* recompute tier assignments from the DOM after a drag */
@@ -548,7 +567,9 @@ $("#resetBtn").onclick = ()=>{
 $("#randomBtn").onclick = ()=>{
   if(Object.keys(state.tiers).length && !confirm("Randomly assign every candidate to a tier? This replaces your current list.")) return;
   const t = {};
-  CANDIDATES.forEach(c=>{
+  // Build keys in shuffled order so within-tier rendering order is random too
+  // (placeCandidates renders ranked candidates in tiersMap key order).
+  shuffled(CANDIDATES).forEach(c=>{
     t[c.id] = TIERS[Math.floor(Math.random()*TIERS.length)].k;
   });
   state.tiers = t;
@@ -628,14 +649,10 @@ function enterReadOnlyMode(data){
 
   const viewTiers = data.tiers || {};
 
-  // Rebuild tiers and place candidates using view data (not state)
+  // Rebuild tiers and place candidates using view data (not state),
+  // preserving the sharer's within-tier order from the submitted payload.
   buildTiers();
-  document.querySelectorAll(".drop").forEach(d=> d.innerHTML="");
-  CANDIDATES.forEach(c=>{
-    const t = viewTiers[c.id];
-    const target = t ? tiersEl.querySelector(`.drop[data-tier="${t}"]`) : poolEl;
-    if(target) target.appendChild(tile(c));
-  });
+  placeCandidates(viewTiers);
 
   // Remove unranked candidates from view (they'd be in the hidden pool)
   // Show only tier rows that have candidates
